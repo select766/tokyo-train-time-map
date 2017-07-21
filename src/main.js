@@ -11,6 +11,7 @@
     var calc_time = null;
     var svg_id_to_station_id = {};
     var station_id_to_svg_obj = {};
+    var station_id_to_svg_box_obj = {};
     var vertex_stations = {};
     var line_edge_id_to_svg_obj = {};//key: "line_id,edge_idx"
     var time_circle_svg_obj = {};//key: minute from center
@@ -86,9 +87,13 @@
         for (var i = 0; i < map_data.stations.length; i++) {
             var station = map_data.stations[i];
             var station_display_pos = calc_station_pos(station);
+            var svg_station_name_box = paper.rect(1, 1, 100, 100).attr({fill: 'white', stroke: 'black', strokeWidth: '2px'});
             var svg_station_name = paper.text(station_display_pos[0], station_display_pos[1], station.station_name).attr({ textAnchor: "middle", dominantBaseline: "middle", fill: (i == center_station_id ? "red" : "black") });
+            var name_rect = svg_station_name.node.getBoundingClientRect();
+            svg_station_name_box.attr({width: name_rect.width, height: name_rect.height, x: station_display_pos[0] - name_rect.width / 2, y: station_display_pos[1] - name_rect.height / 2});
             svg_id_to_station_id[svg_station_name.id] = station.station_id;
             station_id_to_svg_obj[String(station.station_id)] = svg_station_name;
+            station_id_to_svg_box_obj[String(station.station_id)] = svg_station_name_box;
             svg_station_name.click(function (e, x, y) {
                 center_station_id = svg_id_to_station_id[this.id];
                 update_map();
@@ -136,7 +141,10 @@
             var station = map_data.stations[i];
             var station_display_pos = calc_station_pos(station);
             var svg_station_name = station_id_to_svg_obj[station.station_id];
+            var svg_station_name_box = station_id_to_svg_box_obj[station.station_id];
             svg_station_name.stop().animate({ x: station_display_pos[0], y: station_display_pos[1], fill: (i == center_station_id ? "red" : "black") }, 1000);
+            var name_rect = svg_station_name.node.getBoundingClientRect();
+            svg_station_name_box.stop().animate({ x: station_display_pos[0] - name_rect.width / 2, y: station_display_pos[1] - name_rect.height / 2 }, 1000);
         }
 
         for (var minute in time_circle_svg_obj) {
