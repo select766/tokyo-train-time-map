@@ -9,7 +9,7 @@ import json
 import csv
 
 def load_lines_csv(path):
-    rd = csv.DictReader(open(path))
+    rd = csv.DictReader(open(path, encoding="utf-8"))
     lines = [{"line_id":0, "company_name":"", "line_name":"徒歩連絡", "color":"#000000", "edges":[]}]
     for row in rd:
         lines.append(
@@ -22,9 +22,9 @@ def load_lines_csv(path):
     return lines
 
 def load_stations_csv(path, lines):
-    rd = csv.DictReader(open(path))
+    rd = csv.DictReader(open(path, encoding="utf-8"))
     line_name_lines = {line["line_name"]:line for line in lines}
-    stations = []#{station_id, station_name, latitude, longitude, [vertex_id]}
+    stations = []#{station_id, station_name, latitude, longitude, [vertex_id], priority}
     station_name_stations = {}
 
     last_line = None
@@ -33,6 +33,7 @@ def load_stations_csv(path, lines):
         line_name = row["路線名"]
         station_name = row["駅名"]
         station_number = row["駅番号"]
+        priority = row["優先度"]
         vertex_id = next_vertex_id
         next_vertex_id += 1
 
@@ -42,11 +43,13 @@ def load_stations_csv(path, lines):
         station_number_vertex_id[station_number] = vertex_id
         if station_name not in station_name_stations:
             station_id = len(stations)
-            new_station = {"station_id":station_id, "station_name":station_name, "vertices":[]}
+            new_station = {"station_id":station_id, "station_name":station_name, "vertices":[], "priority": 0}
             stations.append(new_station)
             station_name_stations[station_name] = new_station
 
         station_name_stations[station_name]["vertices"].append(vertex_id)
+        if priority:
+            station_name_stations[station_name]["priority"] = int(priority)
 
         for i_next_station in [1,2,3]:
             next_station_number = row["隣接駅番号" + str(i_next_station)]
@@ -59,7 +62,7 @@ def load_stations_csv(path, lines):
     return stations
 
 def load_walk_csv(path):
-    rd = csv.DictReader(open(path))
+    rd = csv.DictReader(open(path, encoding="utf-8"))
     walk_pairs = []
     for row in rd:
         walk_pairs.append((row["徒歩乗換駅名1"], row["徒歩乗換駅名2"]))
@@ -90,7 +93,7 @@ def get_station_location(stations_location_csv, stations, center_pos):
     データベースには北端・南端に分かれているが平均をとる。
     """
     center_longi, center_lati = center_pos
-    rd = csv.DictReader(open(stations_location_csv), fieldnames = ["line_name", "company_name", "station_name", "longitude_low", "latitude_low", "longitude_high", "latitude_high"])
+    rd = csv.DictReader(open(stations_location_csv, encoding="utf-8"), fieldnames = ["line_name", "company_name", "station_name", "longitude_low", "latitude_low", "longitude_high", "latitude_high"])
     station_name_station = {station["station_name"]:station for station in stations}
     for row in rd:
         station_name = row["station_name"]
@@ -114,7 +117,7 @@ def main():
     walk_pairs = load_walk_csv("walk.csv")
     build_walk_edge(lines[0]["edges"], stations, walk_pairs)
     get_station_location("20141005_stations.csv", stations, [139.76746, 35.67936])
-    with open("../generated_data/map_data.jsonp", "wb") as f:
+    with open("../dist/map_data.js", "wt") as f:
         f.write("map_data_callback(")
         json.dump({"lines":lines, "stations":stations}, f)
         f.write(");")

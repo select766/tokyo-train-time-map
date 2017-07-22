@@ -20,7 +20,8 @@ interface StationData {
     longitude: number,
     station_id: number,
     station_name: string,
-    vertices: number[]
+    vertices: number[],
+    priority: number
 }
 
 interface MapData {
@@ -434,8 +435,7 @@ class MapVisualizer {
         let center_station = this.map_data.stations[this.center_station_id];
         let existing_boxes: { left: number, right: number, top: number, bottom: number }[] = [];
 
-        // TODO: 駅の優先度
-        let station_priority = this.map_data.stations.map(st => { return [st.station_id, st.station_id == this.center_station_id ? 1 : 0] });
+        let station_priority = this.map_data.stations.map(st => { return [st.station_id, st.station_id == this.center_station_id ? 10 : st.priority] });
         station_priority.sort((a, b) => (b[1] - a[1]));
 
         for (let i = 0; i < station_priority.length; i++) {
