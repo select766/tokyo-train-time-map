@@ -221,7 +221,6 @@ document.addEventListener('mousemove', function (e) {
 var MapVisualizer = (function () {
     function MapVisualizer(map_data) {
         this.map_data = map_data;
-        this.svg_id_to_station_id = {};
         this.station_id_to_svg_obj = {};
         this.station_id_to_svg_box_obj = {};
         this.station_id_to_svg_minibox_obj = {};
@@ -245,6 +244,17 @@ var MapVisualizer = (function () {
         paper_root.node.addEventListener('mousewheel', function (e) {
             var new_scale = 1.0;
             if (e.deltaY > 0) {
+                new_scale = _this.px_per_minute * 0.5;
+            }
+            else {
+                new_scale = _this.px_per_minute * 2.0;
+            }
+            _this.update_scale(new_scale);
+            _this.update_map();
+        });
+        paper_root.node.addEventListener('DOMMouseScroll', function (e) {
+            var new_scale = 1.0;
+            if (e.detail > 0) {
                 new_scale = _this.px_per_minute * 0.5;
             }
             else {
@@ -303,7 +313,6 @@ var MapVisualizer = (function () {
             station = map_data.stations[i];
             svg_station_name_box = paper.rect(1, 1, 100, 100).attr({ fill: 'white', stroke: 'black', strokeWidth: '2px' });
             svg_station_name = paper.text(0, 0, station.station_name).attr({ textAnchor: "middle", dominantBaseline: "middle", fill: (i == this_2.center_station_id ? "red" : "black") });
-            this_2.svg_id_to_station_id[svg_station_name.id] = station.station_id;
             this_2.station_id_to_svg_obj[String(station.station_id)] = svg_station_name;
             this_2.station_id_to_svg_box_obj[String(station.station_id)] = svg_station_name_box;
             var _this_cap = this_2;
@@ -354,6 +363,7 @@ var MapVisualizer = (function () {
         zoomer_svg_group.rect(40, 40, 32, 32).attr(zoomer_rect_attr).click(small_button_handler);
         zoomer_svg_group.text(56, 16, '大').attr(zoomer_text_attr).click(large_botton_handler);
         zoomer_svg_group.text(56, 56, '小').attr(zoomer_text_attr).click(small_button_handler);
+        zoomer_svg_group.text(80, 16, 'https://github.com/select766/tokyo-train-time-map').attr({ fontSize: 8 });
     };
     MapVisualizer.prototype.update_scale = function (px_per_minute) {
         this.px_per_minute = px_per_minute;
@@ -421,7 +431,6 @@ var MapVisualizer = (function () {
         var existing_boxes = [];
         var station_priority = this.map_data.stations.map(function (st) { return [st.station_id, st.station_id == _this.center_station_id ? 10 : st.priority]; });
         station_priority.sort(function (a, b) { return (b[1] - a[1]); });
-        console.log(station_priority);
         var _loop_3 = function (i) {
             var station_id = station_priority[i][0];
             var station = this_3.map_data.stations[station_id];

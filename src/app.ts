@@ -211,7 +211,6 @@ document.addEventListener('mousemove', function (e) {
 class MapVisualizer {
     calc_time: CalcTime;
 
-    svg_id_to_station_id = {};
     station_id_to_svg_obj = {};
     station_id_to_svg_box_obj = {};
     station_id_to_svg_minibox_obj = {};
@@ -240,9 +239,22 @@ class MapVisualizer {
     create_svg_objects() {
         //svg線路・駅オブジェクトを生成
         var paper_root = Snap("#mainmap");
+        //Chrome, IE
         paper_root.node.addEventListener('mousewheel', (e) => {
             let new_scale = 1.0;
             if (e.deltaY > 0) {
+                new_scale = this.px_per_minute * 0.5;
+            } else {
+                new_scale = this.px_per_minute * 2.0;
+            }
+            this.update_scale(new_scale);
+            this.update_map();
+        });
+
+        //Firefox
+        paper_root.node.addEventListener('DOMMouseScroll', (e) => {
+            let new_scale = 1.0;
+            if ((<any>e).detail > 0) {
                 new_scale = this.px_per_minute * 0.5;
             } else {
                 new_scale = this.px_per_minute * 2.0;
@@ -306,7 +318,6 @@ class MapVisualizer {
             var station = map_data.stations[i];
             var svg_station_name_box = paper.rect(1, 1, 100, 100).attr({ fill: 'white', stroke: 'black', strokeWidth: '2px' });
             var svg_station_name = paper.text(0, 0, station.station_name).attr({ textAnchor: "middle", dominantBaseline: "middle", fill: (i == this.center_station_id ? "red" : "black") });
-            this.svg_id_to_station_id[(<any>svg_station_name).id] = station.station_id;
             this.station_id_to_svg_obj[String(station.station_id)] = svg_station_name;
             this.station_id_to_svg_box_obj[String(station.station_id)] = svg_station_name_box;
             let _this_cap = this;
@@ -355,7 +366,7 @@ class MapVisualizer {
         zoomer_svg_group.rect(40, 40, 32, 32).attr(zoomer_rect_attr).click(small_button_handler);
         zoomer_svg_group.text(56, 16, '大').attr(zoomer_text_attr).click(large_botton_handler);
         zoomer_svg_group.text(56, 56, '小').attr(zoomer_text_attr).click(small_button_handler);
-
+        zoomer_svg_group.text(80, 16, 'https://github.com/select766/tokyo-train-time-map').attr({fontSize: 8});
     }
 
     update_scale(px_per_minute) {

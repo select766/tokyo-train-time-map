@@ -1,1 +1,0 @@
-This directory is for data automatically generated from other data. Do not edit it.
