@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": false,
+        "target": "es5",
+        "outDir": "dist",
+        "types": [
+            "jquery",
+            "snapsvg"
+        ],
+        "lib": [
+            "es2015",
+            "es2015.iterable",
+            "dom"
+        ]
+    },
+    "files": [
+        "src/app.ts"
+    ]
+}
