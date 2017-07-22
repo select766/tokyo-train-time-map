@@ -159,6 +159,11 @@ window.map_data_callback = function (json: MapData) {
 }
 
 $(function () {
+    
+    let svg = document.getElementById('mainmap');
+    svg.setAttribute('height', '' + (window.innerHeight - 150));
+    svg.setAttribute('width', '' + (window.innerWidth - 50));
+    
     var init_visualizer = function () {
         if (!map_data) {
             //wait until map is loaded
@@ -388,3 +393,8 @@ class MapVisualizer {
     }
 }
 
+window.addEventListener('resize', function () {
+    let svg = document.getElementById('mainmap');
+    svg.setAttribute('height', '' + (window.innerHeight - 150));
+    svg.setAttribute('width', '' + (window.innerWidth - 50));
+});
