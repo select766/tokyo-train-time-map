@@ -1,8 +1,5 @@
 import * as $ from 'jquery';
 import * as Snap from 'snapsvg';
-$(() => {
-    console.log('loaded');
-});
 
 declare global {
     interface Window {
@@ -158,12 +155,22 @@ window.map_data_callback = function (json: MapData) {
     map_data = json;
 }
 
-$(function () {
-    
+function update_transform() {
+    map_visualizer.content_svg_group.transform('translate(' + map_offset_x + ',' + map_offset_y + ')');
+}
+
+function fit_window_size() {
     let svg = document.getElementById('mainmap');
-    svg.setAttribute('height', '' + (window.innerHeight - 150));
+    svg.setAttribute('height', '' + (window.innerHeight - 180));
     svg.setAttribute('width', '' + (window.innerWidth - 50));
-    
+}
+
+function move_center_station_to_window_center() {
+    map_offset_x = (window.innerWidth -50) / 2;
+    map_offset_y = (window.innerHeight - 180) / 2;
+}
+
+$(function () {
     var init_visualizer = function () {
         if (!map_data) {
             //wait until map is loaded
@@ -171,10 +178,34 @@ $(function () {
             return;
         }
         map_visualizer = new MapVisualizer(map_data);
+        fit_window_size();
     }
     setTimeout(init_visualizer, 1);
 });
 
+window.addEventListener('resize', fit_window_size);
+
+let dragging = false;
+let drag_origin_x = 0;
+let drag_origin_y = 0;
+let map_offset_x = (window.innerWidth - 50) / 2;
+let map_offset_y = (window.innerHeight - 180) / 2;
+
+document.addEventListener('mouseup', function (e) {
+    dragging = false;
+});
+
+document.addEventListener('mousemove', function (e) {
+    if (dragging) {
+        let move_x = e.clientX - drag_origin_x;
+        let move_y = e.clientY - drag_origin_y;
+        drag_origin_x = e.clientX;
+        drag_origin_y = e.clientY;
+        map_offset_x += move_x;
+        map_offset_y += move_y;
+        update_transform();
+    }
+})
 
 class MapVisualizer {
     calc_time: CalcTime;
@@ -189,26 +220,53 @@ class MapVisualizer {
     station_id_to_bbox_size: { [key: number]: { width: number, height: number } } = {};
     center_station_id = 0;
     station_cost: number[];
-    px_per_minute = 10;
+    px_per_minute = 20;
+    station_name_size = 15;
+    station_pos: { [key: number]: { x: number, y: number, hide: boolean } };
+    station_pos_update_needed: boolean = true;
+    content_svg_group: Snap.Paper;
+    zoomer_svg_group: Snap.Paper;
 
     constructor(private map_data: MapData) {
         this.calc_time = new CalcTime(map_data);
 
         this.create_svg_objects();
-        this.update_station_name_size(10);
+        this.update_station_name_size(15);
         this.set_center_station(0);
         this.update_map();
     }
 
     create_svg_objects() {
         //svg線路・駅オブジェクトを生成
+        var paper_root = Snap("#mainmap");
+        paper_root.node.addEventListener('mousewheel', (e) => {
+            let new_scale = 1.0;
+            if (e.deltaY > 0) {
+                new_scale = this.px_per_minute * 0.5;
+            } else {
+                new_scale = this.px_per_minute * 2.0;
+            }
+            this.update_scale(new_scale);
+            this.update_map();
+        });
 
-        var paper = Snap("#mainmap");
+        //ドラッグ用背景
+        let bg = paper_root.rect(0, 0, 10000, 10000).attr({ 'fill': 'white' });
+        bg.node.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            drag_origin_x = e.clientX;
+            drag_origin_y = e.clientY;
+            dragging = true;
+        });
+
+        let paper = paper_root.group();
+        this.content_svg_group = paper;
+        this.content_svg_group.transform('translate(' + map_offset_x + ',' + map_offset_y + ')');
+
         //時間同心円描画
         for (var minute = 10; minute <= 60; minute += 10) {
-            this.time_circle_svg_obj[minute] = paper.circle(320, 240, this.px_per_minute * minute).attr({ fill: 'none', stroke: 'blue', strokeWidth: 5 });
+            this.time_circle_svg_obj[minute] = paper.circle(0, 0, this.px_per_minute * minute).attr({ fill: 'none', stroke: 'gray', strokeWidth: 5, 'stroke-dasharray': 15 });
         }
-
 
         //線路描画
         for (var i = 0; i < map_data.stations.length; i++) {
@@ -231,12 +289,14 @@ class MapVisualizer {
         //Zオーダの都合で、先に円だけ描画
         for (var i = 0; i < map_data.stations.length; i++) {
             var station = map_data.stations[i];
-            var svg_station_name_minibox = paper.circle(1, 1, 10).attr({ fill: 'white', stroke: 'black', strokeWidth: '2px' });
+            var svg_station_name_minibox = paper.circle(1, 1, 10).attr({ fill: 'white', stroke: 'black', strokeWidth: '2px', title: station.station_name });
             this.station_id_to_svg_minibox_obj[String(station.station_id)] = svg_station_name_minibox;
             let _this_cap = this;
             (function (_station_id) {
                 svg_station_name_minibox.dblclick(function (e) {
                     _this_cap.set_center_station(_station_id);
+                    move_center_station_to_window_center();
+                    update_transform();
                     _this_cap.update_map();
                 });
             })(station.station_id);
@@ -252,57 +312,83 @@ class MapVisualizer {
             (function (_station_id) {
                 svg_station_name.dblclick(function (e) {
                     _this_cap.set_center_station(_station_id);
+                    move_center_station_to_window_center();
+                    update_transform();
                     _this_cap.update_map();
                 });
                 svg_station_name_box.dblclick(function (e) {
                     _this_cap.set_center_station(_station_id);
+                    move_center_station_to_window_center();
+                    update_transform();
                     _this_cap.update_map();
                 });
             })(station.station_id);
         }
 
         //拡大ボタン
-        paper.rect(600, 400, 32, 32).attr({ fill: 'white', stroke: 'black', strokeWidth: '2px' }).click(() => {
+        let zoomer_svg_group = paper_root.group();
+        this.zoomer_svg_group = zoomer_svg_group;
+        let zoomer_rect_attr = { fill: 'white', stroke: 'black', strokeWidth: '2px' };
+        let zoomer_text_attr = { textAnchor: "middle", dominantBaseline: "middle" };
+        let zoom_button_handler = () => {
             this.update_scale(this.px_per_minute * 2);
-        });
-        var scale_minus = paper.rect(600, 440, 32, 32).attr({ fill: 'white', stroke: 'black', strokeWidth: '2px' }).click(() => {
+            this.update_map();
+        };
+        let unzoom_button_handler = () => {
             this.update_scale(this.px_per_minute * 0.5);
-        });
-        paper.text(616, 416, '+').click(() => {
-            this.update_scale(this.px_per_minute * 2);
-        });
-        paper.text(616, 456, '-').click(() => {
-            this.update_scale(this.px_per_minute * 0.5);
-        });
+            this.update_map();
+        };
+        let large_botton_handler = () => {
+            this.update_station_name_size(this.station_name_size + 5);
+            this.update_map();
+        };
+        let small_button_handler = () => {
+            this.update_station_name_size(Math.max(this.station_name_size - 5, 5));
+            this.update_map();
+        };
+        zoomer_svg_group.rect(0, 0, 32, 32).attr(zoomer_rect_attr).click(zoom_button_handler);
+        zoomer_svg_group.rect(0, 40, 32, 32).attr(zoomer_rect_attr).click(unzoom_button_handler);
+        zoomer_svg_group.text(16, 16, '＋').attr(zoomer_text_attr).click(zoom_button_handler);
+        zoomer_svg_group.text(16, 56, '－').attr(zoomer_text_attr).click(unzoom_button_handler);
+        zoomer_svg_group.rect(40, 0, 32, 32).attr(zoomer_rect_attr).click(large_botton_handler);
+        zoomer_svg_group.rect(40, 40, 32, 32).attr(zoomer_rect_attr).click(small_button_handler);
+        zoomer_svg_group.text(56, 16, '大').attr(zoomer_text_attr).click(large_botton_handler);
+        zoomer_svg_group.text(56, 56, '小').attr(zoomer_text_attr).click(small_button_handler);
 
     }
 
     update_scale(px_per_minute) {
         this.px_per_minute = px_per_minute;
-        this.update_map();
+        this.station_pos_update_needed = true;
     }
 
     set_center_station(center_station_id: number) {
         this.center_station_id = center_station_id;
         this.station_cost = this.calc_time.calcTime(this.center_station_id);
+        this.station_pos_update_needed = true;
     }
 
     update_station_name_size(size: number) {
+        this.station_name_size = size;
         for (var i = 0; i < map_data.stations.length; i++) {
             let svg_station_name = this.station_id_to_svg_obj[i];
             let svg_station_name_box = this.station_id_to_svg_box_obj[i];
             let svg_station_name_minibox = this.station_id_to_svg_minibox_obj[i];
-            svg_station_name.attr({ 'font-size': size });
+            svg_station_name.attr({ 'font-size': size, display: 'inline' });
             var name_rect = svg_station_name.node.getBoundingClientRect();
             this.station_id_to_bbox_size[i] = { width: name_rect.width, height: name_rect.height };
             svg_station_name_minibox.attr({ r: name_rect.height / 4 });
             svg_station_name_box.attr({ width: name_rect.width, height: name_rect.height, x: 0, y: 0 });
         }
+        this.station_pos_update_needed = true;
     }
 
     update_map() {
-        let station_pos = this.calc_station_pos();
-        var center_station_pos = [map_data.stations[this.center_station_id].longitude, map_data.stations[this.center_station_id].latitude];
+        if (this.station_pos_update_needed) {
+            this.station_pos = this.calc_station_pos();
+            this.station_pos_update_needed = false;
+        }
+        let station_pos = this.station_pos;
 
         for (var line_id = 0; line_id < map_data.lines.length; line_id++) {
             var line = map_data.lines[line_id];
@@ -312,8 +398,8 @@ class MapVisualizer {
                 //edgeの両端が属する駅の座標を取得
                 var v1_station = this.vertex_stations[edge[0]];
                 var v2_station = this.vertex_stations[edge[1]];
-                var v1_station_pos = this.add_pos_offset(station_pos[v1_station.station_id]);
-                var v2_station_pos = this.add_pos_offset(station_pos[v2_station.station_id]);
+                var v1_station_pos = station_pos[v1_station.station_id];
+                var v2_station_pos = station_pos[v2_station.station_id];
                 var svg_edge = this.line_edge_id_to_svg_obj['' + line_id + ',' + edge_idx];
                 svg_edge.stop().animate({ x1: v1_station_pos.x, y1: v1_station_pos.y, x2: v2_station_pos.x, y2: v2_station_pos.y }, 1000);
             }
@@ -322,15 +408,14 @@ class MapVisualizer {
         //駅位置設定
         for (var i = 0; i < map_data.stations.length; i++) {
             var station = map_data.stations[i];
-            var station_display_pos = this.add_pos_offset(station_pos[station.station_id]);
+            var station_display_pos = station_pos[station.station_id];
             var svg_station_name = this.station_id_to_svg_obj[station.station_id];
             var svg_station_name_minibox = this.station_id_to_svg_minibox_obj[station.station_id];
             var svg_station_name_box = this.station_id_to_svg_box_obj[station.station_id];
 
-            svg_station_name.attr({ display: (station_display_pos.hide ? "none" : "inline") });
+            svg_station_name.attr({ display: (station_display_pos.hide ? "none" : "inline"), fill: (i == this.center_station_id ? "red" : "black") });
             svg_station_name_box.attr({ display: (station_display_pos.hide ? "none" : "inline") });
 
-            svg_station_name.attr({ fill: (i == this.center_station_id ? "red" : "black") });
             svg_station_name.stop().animate({ x: station_display_pos.x, y: station_display_pos.y }, 1000);
             var name_rect = svg_station_name.node.getBoundingClientRect();
             svg_station_name_box.stop().animate({ x: station_display_pos.x - name_rect.width / 2, y: station_display_pos.y - name_rect.height / 2 }, 1000);
@@ -387,14 +472,4 @@ class MapVisualizer {
 
         return positions;
     }
-
-    add_pos_offset(pos: { x: number, y: number, hide: boolean }): { x: number, y: number, hide: boolean } {
-        return { x: pos.x + 320, y: pos.y + 240, hide: pos.hide };
-    }
 }
-
-window.addEventListener('resize', function () {
-    let svg = document.getElementById('mainmap');
-    svg.setAttribute('height', '' + (window.innerHeight - 150));
-    svg.setAttribute('width', '' + (window.innerWidth - 50));
-});
