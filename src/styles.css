@@ -210,6 +210,12 @@ body {
   stroke-linecap: round;
 }
 
+/* 未開業の計画路線 */
+.edge--planned {
+  stroke-dasharray: 9 5;
+  stroke-width: 3.5;
+}
+
 .edge--transfer {
   stroke: var(--fg-muted);
   stroke-width: 1;
@@ -269,6 +275,135 @@ body {
   background: var(--bg-panel);
   font-size: 0.85rem;
   pointer-events: none;
+}
+
+/* --- おまけモード --- */
+
+.toolbar button.button--on {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-block;
+  min-width: 1.3em;
+  margin-left: 5px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.dialog {
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.dialog__title {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.dialog__lead {
+  margin: 0 0 14px;
+  color: var(--fg-muted);
+  font-size: 0.8rem;
+}
+
+.dialog__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dialog__item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.dialog__label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.dialog__label input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.dialog__name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.dialog__desc {
+  display: block;
+  margin-top: 2px;
+  color: var(--fg-muted);
+  font-size: 0.78rem;
+}
+
+.dialog__lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.dialog__chip {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--fg-muted);
+  font-size: 0.74rem;
+}
+
+.dialog__swatch {
+  display: inline-block;
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.dialog__actions button {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 /* --- 統計 --- */

@@ -47,9 +47,9 @@ describe('生成されたネットワークデータ', () => {
   });
 
   it('どの駅からも全駅に到達できる', () => {
-    for (const s of network.stations) {
+    for (const s of network.activeStations()) {
       const m = network.travelMinutesFrom(s.id);
-      const unreachable = network.stations.filter((t) => !Number.isFinite(m[t.id]!));
+      const unreachable = network.activeStations().filter((t) => !Number.isFinite(m[t.id]!));
       expect(unreachable.map((t) => t.name), `${s.name} から`).toEqual([]);
     }
   });
@@ -115,10 +115,98 @@ describe('生成されたネットワークデータ', () => {
   });
 });
 
+describe('おまけモード（未開業路線）', () => {
+  // このブロックはグループを付け外しするので、毎回まっさらな Network を使う
+  const fresh = () => new Network(JSON.parse(JSON.stringify(data)) as NetworkData);
+
+  it('既定では無効で、未開業駅は存在しない', () => {
+    const n = fresh();
+    expect(n.groups.size).toBe(0);
+    expect(n.activeStations()).toHaveLength(248);
+    for (const name of ['晴海', '豊洲市場', '有明', '新銀座', '新築地', '枝川', '千石(江東)']) {
+      const s = n.findByName(name);
+      expect(s, name).toBeDefined();
+      expect(n.isStationActive(s!.id), name).toBe(false);
+    }
+  });
+
+  it('未開業駅は経路計算からも外れる', () => {
+    const n = fresh();
+    const m = n.travelMinutesFrom(n.findByName('東京')!.id);
+    expect(m[n.findByName('晴海')!.id]).toBe(Infinity);
+  });
+
+  it('臨海地下鉄を有効にすると東京〜勝どきが大幅に近くなる', () => {
+    const before = fresh();
+    const tokyo = before.findByName('東京')!.id;
+    const kachidoki = before.findByName('勝どき')!.id;
+    const beforeMinutes = before.travelMinutesFrom(tokyo)[kachidoki]!;
+
+    const after = fresh();
+    after.setActiveGroups(['rinkai']);
+    const afterMinutes = after.travelMinutesFrom(tokyo)[kachidoki]!;
+
+    // 公表資料どおり東京→勝どきは3駅・計7分になる
+    expect(afterMinutes).toBe(7);
+    expect(afterMinutes).toBeLessThan(beforeMinutes);
+  });
+
+  it('臨海地下鉄は東京〜有明を公表資料どおり15分で結ぶ', () => {
+    const n = fresh();
+    n.setActiveGroups(['rinkai']);
+    expect(n.travelMinutesFrom(n.findByName('東京')!.id)[n.findByName('有明')!.id]).toBe(15);
+    expect(n.activeStations()).toHaveLength(253);
+  });
+
+  it('豊住線は直通運転なので豊洲で乗換時間がかからない', () => {
+    const n = fresh();
+    n.setActiveGroups(['toyosumi']);
+    const toyosu = n.findByName('豊洲')!.id;
+    // 公表資料どおり豊洲〜住吉 約9分。乗換5分が乗ってしまうと14分になる
+    expect(n.travelMinutesFrom(toyosu)[n.findByName('住吉')!.id]).toBe(9);
+  });
+
+  it('豊住線がないと豊洲〜住吉は遠回りになる', () => {
+    const n = fresh();
+    expect(n.travelMinutesFrom(n.findByName('豊洲')!.id)[n.findByName('住吉')!.id]).toBeGreaterThan(
+      9,
+    );
+  });
+
+  it('グループを外すと元に戻る', () => {
+    const n = fresh();
+    const tokyo = n.findByName('東京')!.id;
+    const kachidoki = n.findByName('勝どき')!.id;
+    const original = n.travelMinutesFrom(tokyo)[kachidoki]!;
+    n.setActiveGroups(['rinkai', 'toyosumi']);
+    expect(n.activeStations()).toHaveLength(255);
+    n.setActiveGroups([]);
+    expect(n.activeStations()).toHaveLength(248);
+    expect(n.travelMinutesFrom(tokyo)[kachidoki]).toBe(original);
+  });
+
+  it('未知のグループ id は無視される', () => {
+    const n = fresh();
+    n.setActiveGroups(['そんなものはない']);
+    expect(n.groups.size).toBe(0);
+    expect(n.activeStations()).toHaveLength(248);
+  });
+
+  it('おまけ路線の駅は既存駅と正しくつながる', () => {
+    const n = fresh();
+    n.setActiveGroups(['rinkai', 'toyosumi']);
+    for (const s of n.activeStations()) {
+      const m = n.travelMinutesFrom(s.id);
+      const unreachable = n.activeStations().filter((t) => !Number.isFinite(m[t.id]!));
+      expect(unreachable.map((t) => t.name), `${s.name} から`).toEqual([]);
+    }
+  });
+});
+
 describe('reachStats', () => {
   it('「30分でどこまで行けるか」を集計できる', () => {
     const stats = reachStats(network.travelMinutesFrom(id('東京')));
-    expect(stats.reachable).toBe(network.stations.length);
+    expect(stats.reachable).toBe(network.activeStations().length);
     const within30 = stats.within.find((w) => w.minutes === 30)!;
     expect(within30.count).toBeGreaterThan(0);
     expect(within30.count).toBeLessThanOrEqual(stats.reachable);

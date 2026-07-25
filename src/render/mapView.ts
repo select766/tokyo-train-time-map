@@ -30,8 +30,11 @@ interface StationVisual {
 }
 
 interface DrawEdge {
+  /** 駅 id */
   a: number;
   b: number;
+  /** 乗車エッジなら路線 id、徒歩連絡なら null */
+  lineId: number | null;
   el: SVGLineElement;
 }
 
@@ -173,6 +176,21 @@ export class MapView {
     return { x: rect.width / 2, y: rect.height / 2 };
   }
 
+  /**
+   * おまけモードの路線を出し入れする。
+   * 中心駅が未開業駅だった場合、それが消えると原点が無くなるので東京駅へ退避する。
+   */
+  setActiveGroups(groups: Iterable<string>): void {
+    this.network.setActiveGroups(groups);
+    if (!this.network.isStationActive(this.centerStationId)) {
+      const fallback = this.network.findByName('東京') ?? this.network.activeStations()[0];
+      if (fallback) this.centerStationId = fallback.id;
+    }
+    this.minutes = this.network.travelMinutesFrom(this.centerStationId);
+    this.recomputeLayout(true);
+    this.onCenterChange(this.centerStationId);
+  }
+
   setFontSize(size: number): void {
     if (size === this.fontSize) return;
     this.fontSize = size;
@@ -273,11 +291,13 @@ export class MapView {
       if (edge.lineId === null) {
         el.setAttribute('class', 'edge edge--transfer');
       } else {
-        el.setAttribute('class', 'edge');
-        el.setAttribute('stroke', this.network.line(edge.lineId).color);
+        const line = this.network.line(edge.lineId);
+        // 未開業路線は破線で描き、開業済みの路線と区別する
+        el.setAttribute('class', line.group === null ? 'edge' : 'edge edge--planned');
+        el.setAttribute('stroke', line.color);
       }
       this.edgeGroup.appendChild(el);
-      this.edges.push({ a, b, el });
+      this.edges.push({ a, b, lineId: edge.lineId, el });
     }
   }
 
@@ -378,6 +398,13 @@ export class MapView {
 
     for (const edge of this.edges) {
       const { el, a, b } = edge;
+      // 無効なおまけ路線、および到達できない駅につながる線は描かない
+      const visible =
+        (edge.lineId === null || this.network.isLineActive(edge.lineId)) &&
+        this.placements[a]!.reachable &&
+        this.placements[b]!.reachable;
+      el.style.display = visible ? '' : 'none';
+      if (!visible) continue;
       el.setAttribute('x1', fmt(this.currentX[a]!));
       el.setAttribute('y1', fmt(this.currentY[a]!));
       el.setAttribute('x2', fmt(this.currentX[b]!));

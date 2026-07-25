@@ -21,7 +21,8 @@ function fixture(): Network {
       sources: [],
       notes: [],
     },
-    lines: [{ id: 0, name: 'テスト線', company: 'テスト', color: '#000000' }],
+    lines: [{ id: 0, name: 'テスト線', company: 'テスト', color: '#000000', group: null }],
+    optionalGroups: [],
     stations,
     nodes: stations.map((s) => ({ id: s.id, stationId: s.id, lineId: 0 })),
     edges: [

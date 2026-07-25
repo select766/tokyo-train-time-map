@@ -12,7 +12,14 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Edge, Line, NetworkData, Node, Station } from '../src/data/schema.ts';
+import type {
+  Edge,
+  Line,
+  NetworkData,
+  Node,
+  OptionalGroup,
+  Station,
+} from '../src/data/schema.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = resolve(ROOT, 'data');
@@ -44,13 +51,37 @@ function readCsv(path: string): Record<string, string>[] {
 // --- build -------------------------------------------------------------
 
 function build(): NetworkData {
-  const lines: Line[] = readCsv(resolve(DATA, 'lines.csv')).map((r, i) => ({
-    id: i,
-    name: required(r, '路線名'),
-    company: required(r, '会社名'),
-    color: required(r, '色(#RGB)'),
+  const optionalGroups: OptionalGroup[] = readCsv(resolve(DATA, 'extra_groups.csv')).map((r) => ({
+    id: required(r, 'グループid'),
+    name: required(r, '名称'),
+    description: required(r, '説明'),
   }));
+  const groupIds = new Set(optionalGroups.map((g) => g.id));
+
+  const lines: Line[] = readCsv(resolve(DATA, 'lines.csv')).map((r, i) => {
+    const group = r['おまけ'] ?? '';
+    if (group && !groupIds.has(group)) {
+      throw new Error(`lines.csv: 未定義のおまけグループ「${group}」`);
+    }
+    return {
+      id: i,
+      name: required(r, '路線名'),
+      company: required(r, '会社名'),
+      color: required(r, '色(#RGB)'),
+      group: group || null,
+    };
+  });
   const lineByName = new Map(lines.map((l) => [l.name, l]));
+
+  // 直通運転する路線の組。該当する駅では乗換時間をこの値で上書きする
+  const throughServices = new Map<string, number>();
+  for (const [i, r] of readCsv(resolve(DATA, 'through_services.csv')).entries()) {
+    const a = lineByName.get(required(r, '路線名1', i + 2));
+    const b = lineByName.get(required(r, '路線名2', i + 2));
+    if (!a || !b) throw new Error(`through_services.csv:${i + 2}: lines.csv にない路線名`);
+    const minutes = Number(required(r, '乗換時間', i + 2));
+    throughServices.set(throughKey(a.id, b.id, required(r, '駅名', i + 2)), minutes);
+  }
 
   const locations = new Map<string, { lat: number; lon: number }>();
   for (const r of readCsv(resolve(DATA, 'station_locations.csv'))) {
@@ -131,14 +162,19 @@ function build(): NetworkData {
     }
   }
 
-  // 同一駅内の路線間乗換
+  // 同一駅内の路線間乗換。直通運転の指定がある組はその時間を使う
   for (const station of stations) {
     for (let i = 0; i < station.nodeIds.length; i++) {
       for (let j = i + 1; j < station.nodeIds.length; j++) {
+        const a = station.nodeIds[i]!;
+        const b = station.nodeIds[j]!;
+        const through = throughServices.get(
+          throughKey(nodes[a]!.lineId, nodes[b]!.lineId, station.name),
+        );
         edges.push({
-          a: station.nodeIds[i]!,
-          b: station.nodeIds[j]!,
-          minutes: TRANSFER_MINUTES,
+          a,
+          b,
+          minutes: through ?? TRANSFER_MINUTES,
           lineId: null,
         });
       }
@@ -174,10 +210,16 @@ function build(): NetworkData {
       ],
     },
     lines,
+    optionalGroups,
     stations,
     nodes,
     edges,
   };
+}
+
+/** 直通運転指定の索引キー。路線の順序は問わない */
+function throughKey(lineA: number, lineB: number, station: string): string {
+  return `${Math.min(lineA, lineB)},${Math.max(lineA, lineB)},${station}`;
 }
 
 function required(row: Record<string, string>, key: string, lineNo?: number): string {

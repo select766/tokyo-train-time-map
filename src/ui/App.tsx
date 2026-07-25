@@ -4,6 +4,7 @@ import { MapView } from '../render/mapView.ts';
 import { reachStats, type ReachStats } from '../layout/polar.ts';
 import { StationSearch } from './StationSearch.tsx';
 import { StatsPanel } from './StatsPanel.tsx';
+import { ExtraLinesDialog } from './ExtraLinesDialog.tsx';
 import { readUrlState, writeUrlState } from '../urlState.ts';
 
 const DEFAULT_PX_PER_MINUTE = 20;
@@ -18,6 +19,10 @@ export function App({ network }: { network: Network }) {
   );
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeGroups, setActiveGroups] = useState<ReadonlySet<string>>(() => network.groups);
+  // おまけの駅は無効なときリストに出さない
+  const [searchable, setSearchable] = useState(() => network.activeStations());
 
   useEffect(() => {
     if (!holder.current) return;
@@ -30,7 +35,13 @@ export function App({ network }: { network: Network }) {
       onCenterChange: (id) => {
         setCenterId(id);
         setStats(reachStats(map.travelMinutes));
-        writeUrlState({ center: network.station(id).name, scale: map.scale });
+        setActiveGroups(new Set(network.groups));
+        setSearchable(network.activeStations());
+        writeUrlState({
+          center: network.station(id).name,
+          scale: map.scale,
+          extra: [...network.groups],
+        });
       },
       onHover: setHovered,
     });
@@ -63,7 +74,7 @@ export function App({ network }: { network: Network }) {
 
       <div class="toolbar">
         <StationSearch
-          stations={network.stations}
+          stations={searchable}
           currentName={centerName}
           onSelect={(id) => view.current?.setCenter(id)}
         />
@@ -86,6 +97,16 @@ export function App({ network }: { network: Network }) {
         <div class="toolbar__group">
           <button type="button" onClick={() => view.current?.fitToContent()}>
             全体表示
+          </button>
+        </div>
+        <div class="toolbar__group">
+          <button
+            type="button"
+            class={activeGroups.size > 0 ? 'button--on' : undefined}
+            onClick={() => setDialogOpen(true)}
+          >
+            おまけモード
+            {activeGroups.size > 0 && <span class="badge">{activeGroups.size}</span>}
           </button>
         </div>
         <div class="toolbar__group" role="group" aria-label="文字サイズ">
@@ -127,6 +148,21 @@ export function App({ network }: { network: Network }) {
 
       <StatsPanel network={network} centerName={centerName} stats={stats} />
 
+      <ExtraLinesDialog
+        open={dialogOpen}
+        groups={network.optionalGroups}
+        lines={network.lines}
+        active={activeGroups}
+        onToggle={(groupId, enabled) => {
+          const next = new Set(activeGroups);
+          if (enabled) next.add(groupId);
+          else next.delete(groupId);
+          // 状態の正は Network 側。反映後に onCenterChange 経由で UI が追随する
+          view.current?.setActiveGroups(next);
+        }}
+        onClose={() => setDialogOpen(false)}
+      />
+
       <footer class="footer">
         <p class="footer__caveat">
           平面に駅を並べる都合上、<strong>中心駅以外の駅どうしの所要時間は正しく表現されません</strong>。
@@ -145,7 +181,8 @@ function initialCenter(network: Network): number {
   const name = readUrlState().center;
   if (name) {
     const found = network.findByName(name);
-    if (found) return found.id;
+    // おまけを無効にしたまま未開業駅の URL を開く場合があるので存在を確かめる
+    if (found && network.isStationActive(found.id)) return found.id;
   }
   return network.findByName('東京')?.id ?? 0;
 }

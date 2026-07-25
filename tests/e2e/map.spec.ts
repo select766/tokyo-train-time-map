@@ -1,5 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
 
+/** 駅名で駅の点を指すロケータ */
+function dot(page: Page, name: string) {
+  return page
+    .locator('svg.map .dot')
+    .filter({ has: page.locator('title', { hasText: new RegExp(`^${escapeRe(name)}$`) }) });
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** SVG 上のある駅の点の中心座標（ビューポート基準） */
 async function dotCenter(page: Page, name: string): Promise<{ x: number; y: number }> {
   const box = await page
@@ -32,8 +43,8 @@ test.afterEach(({ page }) => {
 test('初期表示で地図と統計が出る', async ({ page }) => {
   await expect(page.locator('svg.map')).toBeVisible();
   await expect(page.locator('.stats__headline')).toContainText('30分以内に');
-  // 全駅ぶんの点が描かれている
-  await expect(page.locator('svg.map .dot')).toHaveCount(248);
+  // 開業済みの全駅ぶんの点が描かれている（未開業のおまけ路線の駅は非表示）
+  await expect(page.locator('svg.map .dot:not([style*="display: none"])')).toHaveCount(248);
 });
 
 test('2020年以降に開業した駅が地図に載っている', async ({ page }) => {
@@ -89,6 +100,100 @@ test('全体表示で最も遠い駅まで画面に収まる', async ({ page }) 
   expect(dot.x).toBeLessThanOrEqual(mapBox.x + mapBox.width);
   expect(dot.y).toBeGreaterThanOrEqual(mapBox.y);
   expect(dot.y).toBeLessThanOrEqual(mapBox.y + mapBox.height);
+});
+
+test.describe('おまけモード', () => {
+  test('ボタンでモーダルが開き、計画路線が並ぶ', async ({ page }) => {
+    await page.getByRole('button', { name: /おまけモード/ }).click();
+    const dialog = page.locator('dialog.dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('都心部・臨海地域地下鉄');
+    await expect(dialog).toContainText('有楽町線延伸');
+    await expect(dialog.locator('input[type=checkbox]')).toHaveCount(2);
+    // 厳密な値ではないことを断っている
+    await expect(dialog).toContainText('目安');
+
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('既定では未開業駅は地図に出ない', async ({ page }) => {
+    for (const name of ['晴海', '豊洲市場', '有明', '新銀座', '枝川', '千石(江東)']) {
+      await expect(dot(page, name), name).toHaveCount(1);
+      await expect(dot(page, name), name).toBeHidden();
+    }
+    await expect(page.locator('.stats__headline')).toContainText('248 駅');
+  });
+
+  test('臨海地下鉄を有効にすると勝どきが東京駅に近づく', async ({ page }) => {
+    await page.goto('/?center=' + encodeURIComponent('東京') + '&scale=20');
+    await page.waitForSelector('svg.map .label');
+    await page.waitForTimeout(900);
+    const center = await dotCenter(page, '東京');
+    const before = await dotCenter(page, '勝どき');
+    const rBefore = Math.hypot(before.x - center.x, before.y - center.y);
+
+    await page.getByRole('button', { name: /おまけモード/ }).click();
+    await page.locator('dialog.dialog input[type=checkbox]').first().check();
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await page.waitForTimeout(1000);
+
+    const after = await dotCenter(page, '勝どき');
+    const rAfter = Math.hypot(after.x - center.x, after.y - center.y);
+    // 18分 → 7分。scale=20 なので半径は 360px → 140px になるはず
+    expect(rBefore).toBeGreaterThan(330);
+    expect(rAfter).toBeLessThan(170);
+  });
+
+  test('有効にすると未開業駅と対象駅数が増え、URL にも残る', async ({ page }) => {
+    await page.getByRole('button', { name: /おまけモード/ }).click();
+    const boxes = page.locator('dialog.dialog input[type=checkbox]');
+    await boxes.nth(0).check();
+    await boxes.nth(1).check();
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await page.waitForTimeout(1000);
+
+    await expect(page.locator('.stats__headline')).toContainText('255 駅');
+    await expect(dot(page, '晴海')).toBeVisible();
+    await expect(dot(page, '千石(江東)')).toBeVisible();
+    await expect(dot(page, '有明')).toBeVisible();
+    await expect(page).toHaveURL(/extra=/);
+  });
+
+  test('URL の extra パラメータで最初から有効にできる', async ({ page }) => {
+    await page.goto('/?extra=rinkai,toyosumi');
+    await page.waitForSelector('svg.map .label');
+    await expect(page.locator('.stats__headline')).toContainText('255 駅');
+    await expect(page.getByRole('button', { name: /おまけモード/ })).toContainText('2');
+  });
+
+  test('外すと元の248駅に戻る', async ({ page }) => {
+    await page.goto('/?extra=rinkai,toyosumi');
+    await page.waitForSelector('svg.map .label');
+    await expect(page.locator('.stats__headline')).toContainText('255 駅');
+
+    await page.getByRole('button', { name: /おまけモード/ }).click();
+    const boxes = page.locator('dialog.dialog input[type=checkbox]');
+    await boxes.nth(0).uncheck();
+    await boxes.nth(1).uncheck();
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await page.waitForTimeout(1000);
+    await expect(page.locator('.stats__headline')).toContainText('248 駅');
+  });
+
+  test('未開業駅を中心にしたままおまけを外しても壊れない', async ({ page }) => {
+    await page.goto('/?extra=rinkai&center=' + encodeURIComponent('晴海'));
+    await page.waitForSelector('svg.map .label');
+    await expect(page.locator('.stats__headline')).toContainText('晴海');
+
+    await page.getByRole('button', { name: /おまけモード/ }).click();
+    await page.locator('dialog.dialog input[type=checkbox]').first().uncheck();
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await page.waitForTimeout(1000);
+    // 中心が消えるので東京へ退避する
+    await expect(page.locator('.stats__headline')).toContainText('東京');
+    await expect(page.locator('.stats__headline')).toContainText('248 駅');
+  });
 });
 
 test('ホイールはカーソル位置を固定したまま拡大縮小する', async ({ page }) => {

@@ -13,6 +13,18 @@ export interface Line {
   company: string;
   /** #rrggbb */
   color: string;
+  /**
+   * 常設の路線は null。おまけモードで足せる未開業路線は、
+   * どのグループに属するかを表す id が入る。
+   */
+  group: string | null;
+}
+
+/** おまけモードで切り替えられる路線のまとまり（未開業・計画中の路線） */
+export interface OptionalGroup {
+  id: string;
+  name: string;
+  description: string;
 }
 
 /** 駅（同名の複数路線ホームをまとめたもの） */
@@ -60,6 +72,7 @@ export interface NetworkMeta {
 export interface NetworkData {
   meta: NetworkMeta;
   lines: Line[];
+  optionalGroups: OptionalGroup[];
   stations: Station[];
   nodes: Node[];
   edges: Edge[];
