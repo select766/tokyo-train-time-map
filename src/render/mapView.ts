@@ -148,17 +148,29 @@ export class MapView {
     this.onCenterChange(stationId);
   }
 
+  /**
+   * 倍率を変える。focus を渡すと、その点（SVG 左上を原点とする座標）の真下にある
+   * 地図上の地点が動かないように平行移動を補正する。省略した場合は画面中央を固定する。
+   */
   setScale(pxPerMinute: number, focus?: { x: number; y: number }): void {
     const next = clamp(pxPerMinute, MIN_PX_PER_MINUTE, MAX_PX_PER_MINUTE);
     if (next === this.pxPerMinute) return;
     const ratio = next / this.pxPerMinute;
-    if (focus) {
-      // 指またはカーソルの下の地点を固定したまま拡大する
-      this.offsetX = focus.x - (focus.x - this.offsetX) * ratio;
-      this.offsetY = focus.y - (focus.y - this.offsetY) * ratio;
-    }
+
+    // 駅の座標は倍率に比例するので、画面座標は offset + (画面座標 - offset) * ratio に移る。
+    // これが focus で不動になるよう offset を解く。
+    const anchor = focus ?? this.viewportCenter();
+    this.offsetX = anchor.x - (anchor.x - this.offsetX) * ratio;
+    this.offsetY = anchor.y - (anchor.y - this.offsetY) * ratio;
+
     this.pxPerMinute = next;
+    this.applyViewportTransform();
     this.recomputeLayout(false);
+  }
+
+  private viewportCenter(): { x: number; y: number } {
+    const rect = this.svg.getBoundingClientRect();
+    return { x: rect.width / 2, y: rect.height / 2 };
   }
 
   setFontSize(size: number): void {

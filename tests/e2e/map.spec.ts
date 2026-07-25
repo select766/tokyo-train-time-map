@@ -91,6 +91,46 @@ test('全体表示で最も遠い駅まで画面に収まる', async ({ page }) 
   expect(dot.y).toBeLessThanOrEqual(mapBox.y + mapBox.height);
 });
 
+test('ホイールはカーソル位置を固定したまま拡大縮小する', async ({ page }) => {
+  await page.goto('/?center=' + encodeURIComponent('東京') + '&scale=20');
+  await page.waitForSelector('svg.map .label');
+  await page.waitForTimeout(900);
+
+  // 中心駅から離れた駅にカーソルを合わせる。ここが動かないことを確かめたい
+  const before = await dotCenter(page, '新橋');
+  await page.mouse.move(before.x, before.y);
+  await page.mouse.wheel(0, -300);
+  await page.waitForTimeout(300);
+
+  const after = await dotCenter(page, '新橋');
+  expect(Math.abs(after.x - before.x), 'カーソル下の駅の x 移動量').toBeLessThan(3);
+  expect(Math.abs(after.y - before.y), 'カーソル下の駅の y 移動量').toBeLessThan(3);
+
+  // 縮小方向でも同じ
+  await page.mouse.wheel(0, 500);
+  await page.waitForTimeout(300);
+  const zoomedOut = await dotCenter(page, '新橋');
+  expect(Math.abs(zoomedOut.x - before.x)).toBeLessThan(3);
+  expect(Math.abs(zoomedOut.y - before.y)).toBeLessThan(3);
+});
+
+test('拡大するとカーソル位置以外の駅は外側へ広がる', async ({ page }) => {
+  await page.goto('/?center=' + encodeURIComponent('東京') + '&scale=20');
+  await page.waitForSelector('svg.map .label');
+  await page.waitForTimeout(900);
+
+  const anchor = await dotCenter(page, '新橋');
+  const centerBefore = await dotCenter(page, '東京');
+  await page.mouse.move(anchor.x, anchor.y);
+  await page.mouse.wheel(0, -300);
+  await page.waitForTimeout(300);
+
+  const centerAfter = await dotCenter(page, '東京');
+  const dBefore = Math.hypot(centerBefore.x - anchor.x, centerBefore.y - anchor.y);
+  const dAfter = Math.hypot(centerAfter.x - anchor.x, centerAfter.y - anchor.y);
+  expect(dAfter).toBeGreaterThan(dBefore * 1.05);
+});
+
 test('ホイールで拡大縮小できる', async ({ page }) => {
   await page.goto('/?center=' + encodeURIComponent('東京') + '&scale=20');
   await page.waitForSelector('svg.map .label');
