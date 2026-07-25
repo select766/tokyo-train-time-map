@@ -166,6 +166,22 @@ describe('おまけモード（未開業路線）', () => {
     expect(n.travelMinutesFrom(toyosu)[n.findByName('住吉')!.id]).toBe(9);
   });
 
+  it('南北線品川支線は白金高輪で直通し、品川〜六本木一丁目を9分にする', () => {
+    const n = fresh();
+    // 公表資料では現状約19分（このデータでは21分）
+    expect(n.travelMinutesFrom(n.findByName('品川')!.id)[n.findByName('六本木一丁目')!.id]).toBe(21);
+    n.setActiveGroups(['shinagawa']);
+    // 公表資料どおり約9分。白金高輪で乗換5分が乗ると14分になる
+    expect(n.travelMinutesFrom(n.findByName('品川')!.id)[n.findByName('六本木一丁目')!.id]).toBe(9);
+    expect(n.travelMinutesFrom(n.findByName('品川')!.id)[n.findByName('白金高輪')!.id]).toBe(4);
+  });
+
+  it('南北線品川支線は新駅を持たないので駅数が変わらない', () => {
+    const n = fresh();
+    n.setActiveGroups(['shinagawa']);
+    expect(n.activeStations()).toHaveLength(248);
+  });
+
   it('豊住線がないと豊洲〜住吉は遠回りになる', () => {
     const n = fresh();
     expect(n.travelMinutesFrom(n.findByName('豊洲')!.id)[n.findByName('住吉')!.id]).toBeGreaterThan(
@@ -178,7 +194,7 @@ describe('おまけモード（未開業路線）', () => {
     const tokyo = n.findByName('東京')!.id;
     const kachidoki = n.findByName('勝どき')!.id;
     const original = n.travelMinutesFrom(tokyo)[kachidoki]!;
-    n.setActiveGroups(['rinkai', 'toyosumi']);
+    n.setActiveGroups(['rinkai', 'toyosumi', 'shinagawa']);
     expect(n.activeStations()).toHaveLength(255);
     n.setActiveGroups([]);
     expect(n.activeStations()).toHaveLength(248);
@@ -194,7 +210,7 @@ describe('おまけモード（未開業路線）', () => {
 
   it('おまけ路線の駅は既存駅と正しくつながる', () => {
     const n = fresh();
-    n.setActiveGroups(['rinkai', 'toyosumi']);
+    n.setActiveGroups(['rinkai', 'toyosumi', 'shinagawa']);
     for (const s of n.activeStations()) {
       const m = n.travelMinutesFrom(s.id);
       const unreachable = n.activeStations().filter((t) => !Number.isFinite(m[t.id]!));

@@ -185,7 +185,8 @@ test.describe('おまけモード', () => {
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('都心部・臨海地域地下鉄');
     await expect(dialog).toContainText('有楽町線延伸');
-    await expect(dialog.locator('input[type=checkbox]')).toHaveCount(2);
+    await expect(dialog).toContainText('南北線延伸');
+    await expect(dialog.locator('input[type=checkbox]')).toHaveCount(3);
     // 厳密な値ではないことを断っている
     await expect(dialog).toContainText('目安');
 
@@ -254,6 +255,29 @@ test.describe('おまけモード', () => {
     await boxes.nth(1).uncheck();
     await page.getByRole('button', { name: '閉じる' }).click();
     await page.waitForTimeout(1000);
+    await expect(page.locator('.stats__headline')).toContainText('248 駅');
+  });
+
+  test('南北線品川支線は新駅がないので駅数は変わらないが品川が近くなる', async ({ page }) => {
+    await page.goto('/?center=' + encodeURIComponent('品川') + '&scale=20');
+    await page.waitForSelector('svg.map .label');
+    await page.waitForTimeout(900);
+    const center = await dotCenter(page, '品川');
+    const before = await dotCenter(page, '六本木一丁目');
+    const rBefore = Math.hypot(before.x - center.x, before.y - center.y);
+    await expect(page.locator('.stats__headline')).toContainText('248 駅');
+
+    await page.getByRole('button', { name: /おまけモード/ }).click();
+    await page.locator('dialog.dialog input[type=checkbox]').nth(2).check();
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await page.waitForTimeout(1000);
+
+    // 21分 → 9分。scale=20 なので半径は 420px → 180px
+    const after = await dotCenter(page, '六本木一丁目');
+    const rAfter = Math.hypot(after.x - center.x, after.y - center.y);
+    expect(rBefore).toBeGreaterThan(390);
+    expect(rAfter).toBeLessThan(210);
+    // 白金高輪と品川はどちらも既存駅なので対象駅数は増えない
     await expect(page.locator('.stats__headline')).toContainText('248 駅');
   });
 
