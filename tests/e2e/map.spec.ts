@@ -47,6 +47,38 @@ test('初期表示で地図と統計が出る', async ({ page }) => {
   await expect(page.locator('svg.map .dot:not([style*="display: none"])')).toHaveCount(248);
 });
 
+test('上部に残すのは「ゆがみ」と「おまけモード」だけ', async ({ page }) => {
+  const primary = page.locator('.toolbar--primary');
+  await expect(primary.locator('button')).toHaveCount(2);
+  await expect(primary).toContainText('ゆがみを色で表示');
+  await expect(primary).toContainText('おまけモード');
+  // 検索・拡大縮小・文字サイズは副のほうにある
+  await expect(page.locator('.toolbar--secondary #station-search')).toHaveCount(1);
+  await expect(page.locator('.toolbar--secondary button')).toHaveCount(5);
+});
+
+test('狭い画面ではジェスチャで代替できる操作を統計の下へ回す', async ({ page }) => {
+  const box = async (selector: string) => {
+    const b = await page.locator(selector).boundingBox();
+    if (!b) throw new Error(`${selector} が見つかりません`);
+    return b;
+  };
+  const primary = await box('.toolbar--primary');
+  const secondary = await box('.toolbar--secondary');
+  const map = await box('.map-holder');
+  const stats = await box('.stats');
+
+  // ゆがみ・おまけモードはどの幅でも地図の上
+  expect(primary.y).toBeLessThan(map.y);
+
+  if (page.viewportSize()!.width <= 640) {
+    // 上部を地図に譲り、副の操作は「最も遠い駅」を含む統計の下へ
+    expect(secondary.y).toBeGreaterThan(stats.y + stats.height);
+  } else {
+    expect(secondary.y).toBeLessThan(map.y);
+  }
+});
+
 test('注釈に地図の読み方と前提が並ぶ', async ({ page }) => {
   const caveats = page.locator('.footer__caveats');
   await expect(caveats).toContainText('方角は実際の地理どおり');

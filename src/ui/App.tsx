@@ -91,7 +91,13 @@ export function App({ network }: { network: Network }) {
         </p>
       </header>
 
-      <div class="toolbar">
+      {/*
+        広い画面では2つのツールバーを1行に並べる。
+        狭い画面では .controls が display:contents になり、ピンチや駅のタップで
+        代替できる操作（副）だけが統計の下へ回る。並び替えは styles.css の order。
+      */}
+      <div class="controls">
+      <div class="toolbar toolbar--secondary">
         <StationSearch
           stations={searchable}
           currentName={centerName}
@@ -118,6 +124,33 @@ export function App({ network }: { network: Network }) {
             全体表示
           </button>
         </div>
+        <div class="toolbar__group" role="group" aria-label="文字サイズ">
+          <button
+            type="button"
+            onClick={() => {
+              const next = Math.min(fontSize + 2, 28);
+              setFontSize(next);
+              view.current?.setFontSize(next);
+            }}
+            aria-label="文字を大きく"
+          >
+            大
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const next = Math.max(fontSize - 2, 8);
+              setFontSize(next);
+              view.current?.setFontSize(next);
+            }}
+            aria-label="文字を小さく"
+          >
+            小
+          </button>
+        </div>
+      </div>
+
+      <div class="toolbar toolbar--primary">
         <div class="toolbar__group">
           <button
             type="button"
@@ -143,30 +176,7 @@ export function App({ network }: { network: Network }) {
             {activeGroups.size > 0 && <span class="badge">{activeGroups.size}</span>}
           </button>
         </div>
-        <div class="toolbar__group" role="group" aria-label="文字サイズ">
-          <button
-            type="button"
-            onClick={() => {
-              const next = Math.min(fontSize + 2, 28);
-              setFontSize(next);
-              view.current?.setFontSize(next);
-            }}
-            aria-label="文字を大きく"
-          >
-            大
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const next = Math.max(fontSize - 2, 8);
-              setFontSize(next);
-              view.current?.setFontSize(next);
-            }}
-            aria-label="文字を小さく"
-          >
-            小
-          </button>
-        </div>
+      </div>
       </div>
 
       <div class="map-holder" ref={holder}>

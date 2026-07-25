@@ -68,12 +68,20 @@ body {
 
 /* --- ツールバー --- */
 
-.toolbar {
+/* 広い画面では副・主のツールバーを1行に並べる */
+.controls {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: flex-end;
   padding: 8px 16px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
 }
 
 .toolbar__group {
@@ -560,6 +568,30 @@ body {
     min-height: 100%;
   }
 
+  /*
+    上部を地図に譲る。display:contents で .controls の箱を消すと
+    2つのツールバーが body の flex 項目になり、order で並び替えられる。
+    ピンチや駅のタップで代替できる操作（副）だけを統計の下へ回す。
+  */
+  .controls {
+    display: contents;
+  }
+
+  .toolbar--primary {
+    padding: 8px 8px 0;
+  }
+
+  .toolbar--secondary {
+    order: 1;
+    padding: 12px 8px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+  }
+
+  .footer {
+    order: 2;
+  }
+
   .header__lead {
     font-size: 0.76rem;
   }
@@ -567,15 +599,15 @@ body {
   .map-holder {
     flex: 0 0 auto;
     height: 60vh;
-    margin: 0 8px;
+    margin: 8px 8px 0;
   }
 
   .stats__grid {
     grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
   }
 
+  /* .toolbar の余白は上の order 指定側で個別に持たせている */
   .stats,
-  .toolbar,
   .footer,
   .header {
     padding-inline: 8px;
