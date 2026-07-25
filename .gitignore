@@ -1,3 +1,7 @@
 /node_modules
-make_dataset/20141005_stations.csv
-make_dataset/20141005_stations.csv.zip
+/dist
+# データセットは data/*.csv から npm run dataset で生成する
+/public/data/network.json
+/test-results
+/playwright-report
+.DS_Store

@@ -1,22 +1,37 @@
 {
   "name": "tokyo-train-time-map",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "東京の電車の所要時間を地図上の距離で表すタイムマップ",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "imports-loader": "^0.7.1",
-    "ts-loader": "^2.3.1"
+    "dataset": "tsx tools/build-dataset.ts",
+    "predev": "npm run dataset",
+    "dev": "vite",
+    "prebuild": "npm run dataset",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "pretest": "npm run dataset",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "pree2e": "npm run dataset",
+    "e2e": "playwright test"
   },
   "dependencies": {
-    "@types/jquery": "^3.2.9",
-    "@types/snapsvg": "^0.4.29",
-    "jquery": "^3.2.1",
-    "snapsvg": "^0.5.1"
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@preact/preset-vite": "^2.10.2",
+    "@types/node": "^26.1.1",
+    "eslint": "^9.39.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.1",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4"
   }
 }
