@@ -199,10 +199,21 @@ export function App({ network }: { network: Network }) {
       />
 
       <footer class="footer">
-        <p class="footer__caveat">
-          平面に駅を並べる都合上、<strong>中心駅以外の駅どうしの所要時間は正しく表現されません</strong>。
-          乗換・徒歩連絡は一律{network.data.meta.transferMinutes}分として計算しています。
-        </p>
+        <ul class="footer__caveats">
+          <li>
+            駅を置く<strong>方角は実際の地理どおり</strong>です。中心から見て東にある駅は
+            画面上でも東に置かれます。変えているのは中心からの距離だけです。
+          </li>
+          <li>
+            平面に駅を並べる都合上、
+            <strong>中心駅以外の駅どうしの所要時間は正しく表現されません</strong>。
+          </li>
+          <li>
+            <strong>快速・急行は考慮していません</strong>（中央線・総武線の都心区間の一部を除く）。
+            各駅停車での所要時間です。
+          </li>
+          <li>乗換・徒歩連絡は一律{network.data.meta.transferMinutes}分として計算しています。</li>
+        </ul>
         <p>
           所要時間データ: {network.data.meta.timetableBasis} /{' '}
           <a href="https://github.com/select766/tokyo-train-time-map">GitHub</a>

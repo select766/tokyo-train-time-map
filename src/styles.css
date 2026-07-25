@@ -531,6 +531,24 @@ body {
   margin: 2px 0;
 }
 
+/* 1行1項目。横に流すと項目の切れ目が読み取りにくい */
+.footer__caveats {
+  margin: 0 0 3px;
+  padding: 0;
+  list-style: none;
+}
+
+.footer__caveats li {
+  position: relative;
+  padding-left: 11px;
+}
+
+.footer__caveats li::before {
+  position: absolute;
+  left: 0;
+  content: "・";
+}
+
 .footer a {
   color: inherit;
 }

@@ -47,6 +47,15 @@ test('初期表示で地図と統計が出る', async ({ page }) => {
   await expect(page.locator('svg.map .dot:not([style*="display: none"])')).toHaveCount(248);
 });
 
+test('注釈に地図の読み方と前提が並ぶ', async ({ page }) => {
+  const caveats = page.locator('.footer__caveats');
+  await expect(caveats).toContainText('方角は実際の地理どおり');
+  await expect(caveats).toContainText('中心駅以外の駅どうしの所要時間は正しく表現されません');
+  await expect(caveats).toContainText('快速・急行は考慮していません');
+  await expect(caveats).toContainText('乗換・徒歩連絡は一律5分');
+  await expect(caveats.locator('li')).toHaveCount(4);
+});
+
 test('2020年以降に開業した駅が地図に載っている', async ({ page }) => {
   await expect(page.locator('svg.map .dot title', { hasText: '虎ノ門ヒルズ' })).toHaveCount(1);
   await expect(page.locator('svg.map .dot title', { hasText: '高輪ゲートウェイ' })).toHaveCount(1);
