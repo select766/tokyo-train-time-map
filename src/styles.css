@@ -277,6 +277,72 @@ body {
   pointer-events: none;
 }
 
+/* --- ゆがみの背景色 --- */
+
+.field {
+  pointer-events: none;
+}
+
+.legend {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  align-items: center;
+  max-width: calc(100% - 16px);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  pointer-events: none;
+}
+
+.legend__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.legend__scale {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.legend__end {
+  align-self: center;
+  color: var(--fg-muted);
+  font-size: 0.68rem;
+}
+
+.legend__band {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+.legend__swatch {
+  width: 46px;
+  height: 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.legend__tick {
+  color: var(--fg-muted);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.legend__note {
+  color: var(--fg-muted);
+  font-size: 0.66rem;
+}
+
 /* --- おまけモード --- */
 
 .toolbar button.button--on {

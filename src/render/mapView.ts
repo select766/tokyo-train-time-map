@@ -1,6 +1,8 @@
 import type { Network } from '../data/network.ts';
 import { layoutPolar, type Placement } from '../layout/polar.ts';
 import { layoutLabels, TextMeasurer, type LabelBox } from '../layout/labels.ts';
+import { computeDistortionField, type DistortionField } from '../layout/distortion.ts';
+import { paintDistortion, type ColorScheme } from './distortionPaint.ts';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const FONT_FAMILY =
@@ -48,6 +50,7 @@ interface DrawEdge {
 export class MapView {
   private readonly svg: SVGSVGElement;
   private readonly viewport: SVGGElement;
+  private readonly fieldImage: SVGImageElement;
   private readonly ringGroup: SVGGElement;
   private readonly edgeGroup: SVGGElement;
   private readonly leaderGroup: SVGGElement;
@@ -80,6 +83,10 @@ export class MapView {
   private offsetX = 0;
   private offsetY = 0;
 
+  private showField = false;
+  private colorScheme: ColorScheme = 'light';
+  private field: DistortionField | null = null;
+
   private readonly onCenterChange: (stationId: number) => void;
   private readonly onHover: (stationId: number | null) => void;
 
@@ -100,6 +107,11 @@ export class MapView {
     container.appendChild(this.svg);
 
     this.viewport = this.group(this.svg, 'viewport');
+    // 歪みの面は最背面。viewport の子なのでパンは transform 任せでよい
+    this.fieldImage = document.createElementNS(SVG_NS, 'image');
+    this.fieldImage.setAttribute('class', 'field');
+    this.fieldImage.style.display = 'none';
+    this.viewport.appendChild(this.fieldImage);
     this.ringGroup = this.group(this.viewport, 'rings');
     this.edgeGroup = this.group(this.viewport, 'edges');
     this.leaderGroup = this.group(this.viewport, 'leaders');
@@ -147,6 +159,7 @@ export class MapView {
     this.centerStationId = stationId;
     this.minutes = this.network.travelMinutesFrom(stationId);
     this.recomputeLayout(animate);
+    if (this.showField) this.rebuildField();
     this.centerOnViewport();
     this.onCenterChange(stationId);
   }
@@ -188,7 +201,55 @@ export class MapView {
     }
     this.minutes = this.network.travelMinutesFrom(this.centerStationId);
     this.recomputeLayout(true);
+    if (this.showField) this.rebuildField();
     this.onCenterChange(this.centerStationId);
+  }
+
+  /** 直線距離と時間距離のずれを背景色で示す */
+  setFieldVisible(visible: boolean): void {
+    if (visible === this.showField) return;
+    this.showField = visible;
+    if (visible) this.rebuildField();
+    else this.fieldImage.style.display = 'none';
+  }
+
+  get fieldVisible(): boolean {
+    return this.showField;
+  }
+
+  /** 明暗どちらの配色を使うか。地の色が変わると読める段が変わる */
+  setColorScheme(scheme: ColorScheme): void {
+    if (scheme === this.colorScheme) return;
+    this.colorScheme = scheme;
+    if (this.showField) this.rebuildField();
+  }
+
+  private rebuildField(): void {
+    // 場は「分」座標系で作るので、拡大縮小しても作り直す必要はない
+    const positions = this.placements.map((p) => ({
+      stationId: p.stationId,
+      x: p.x / this.pxPerMinute,
+      y: p.y / this.pxPerMinute,
+      reachable: p.reachable,
+    }));
+    this.field = computeDistortionField(this.network, this.centerStationId, this.minutes, positions);
+    if (this.field.sampleCount === 0) {
+      this.fieldImage.style.display = 'none';
+      return;
+    }
+    this.fieldImage.setAttribute('href', paintDistortion(this.field, this.colorScheme));
+    this.fieldImage.style.display = '';
+    this.placeFieldImage();
+  }
+
+  /** 場の画像を現在の倍率にあわせて配置する */
+  private placeFieldImage(): void {
+    if (!this.field) return;
+    const half = this.field.extent * this.pxPerMinute;
+    this.fieldImage.setAttribute('x', fmt(-half));
+    this.fieldImage.setAttribute('y', fmt(-half));
+    this.fieldImage.setAttribute('width', fmt(half * 2));
+    this.fieldImage.setAttribute('height', fmt(half * 2));
   }
 
   setFontSize(size: number): void {
@@ -380,6 +441,8 @@ export class MapView {
   // --- 描画 ------------------------------------------------------------
 
   private paint(): void {
+    if (this.showField) this.placeFieldImage();
+
     // 最遠の駅より外側の円は情報を持たないので描かない
     const outermost = Math.ceil(this.farthestMinutes() / 10) * 10;
     for (const ring of this.rings) {

@@ -5,6 +5,8 @@ import { reachStats, type ReachStats } from '../layout/polar.ts';
 import { StationSearch } from './StationSearch.tsx';
 import { StatsPanel } from './StatsPanel.tsx';
 import { ExtraLinesDialog } from './ExtraLinesDialog.tsx';
+import { DistortionLegend } from './DistortionLegend.tsx';
+import type { ColorScheme } from '../render/distortionPaint.ts';
 import { readUrlState, writeUrlState } from '../urlState.ts';
 
 const DEFAULT_PX_PER_MINUTE = 20;
@@ -23,6 +25,20 @@ export function App({ network }: { network: Network }) {
   const [activeGroups, setActiveGroups] = useState<ReadonlySet<string>>(() => network.groups);
   // おまけの駅は無効なときリストに出さない
   const [searchable, setSearchable] = useState(() => network.activeStations());
+  const [showField, setShowField] = useState(() => readUrlState().field ?? false);
+  const [scheme, setScheme] = useState<ColorScheme>(prefersDark);
+
+  // 端末の明暗設定に追従する。地の色が変わると読める配色も変わる
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => {
+      const next: ColorScheme = mq.matches ? 'dark' : 'light';
+      setScheme(next);
+      view.current?.setColorScheme(next);
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     if (!holder.current) return;
@@ -41,12 +57,15 @@ export function App({ network }: { network: Network }) {
           center: network.station(id).name,
           scale: map.scale,
           extra: [...network.groups],
+          field: map.fieldVisible,
         });
       },
       onHover: setHovered,
     });
     view.current = map;
+    map.setColorScheme(prefersDark());
     map.centerOnViewport();
+    if (readUrlState().field) map.setFieldVisible(true);
 
     const onResize = () => map.resize();
     window.addEventListener('resize', onResize);
@@ -102,6 +121,21 @@ export function App({ network }: { network: Network }) {
         <div class="toolbar__group">
           <button
             type="button"
+            class={showField ? 'button--on' : undefined}
+            aria-pressed={showField}
+            onClick={() => {
+              const next = !showField;
+              setShowField(next);
+              view.current?.setFieldVisible(next);
+              writeUrlState({ field: next });
+            }}
+          >
+            ゆがみを色で表示
+          </button>
+        </div>
+        <div class="toolbar__group">
+          <button
+            type="button"
             class={activeGroups.size > 0 ? 'button--on' : undefined}
             onClick={() => setDialogOpen(true)}
           >
@@ -136,6 +170,7 @@ export function App({ network }: { network: Network }) {
       </div>
 
       <div class="map-holder" ref={holder}>
+        {showField && <DistortionLegend scheme={scheme} />}
         {hoveredStation && (
           <div class="tooltip" role="status">
             {hoveredStation.name}
@@ -175,6 +210,10 @@ export function App({ network }: { network: Network }) {
       </footer>
     </>
   );
+}
+
+function prefersDark(): ColorScheme {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function initialCenter(network: Network): number {

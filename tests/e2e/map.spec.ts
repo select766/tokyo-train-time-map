@@ -102,6 +102,82 @@ test('全体表示で最も遠い駅まで画面に収まる', async ({ page }) 
   expect(dot.y).toBeLessThanOrEqual(mapBox.y + mapBox.height);
 });
 
+test.describe('ゆがみの背景色', () => {
+  const toggle = (page: Page) => page.getByRole('button', { name: 'ゆがみを色で表示' });
+
+  test('既定では出ておらず、ボタンで出せる', async ({ page }) => {
+    await expect(page.locator('svg.map image.field')).toBeHidden();
+    await expect(page.locator('.legend')).toHaveCount(0);
+
+    await toggle(page).click();
+    await expect(page.locator('svg.map image.field')).toBeVisible();
+    await expect(toggle(page)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).toHaveURL(/field=1/);
+  });
+
+  test('凡例に数値の目盛が並ぶ（色だけに意味を持たせない）', async ({ page }) => {
+    await toggle(page).click();
+    const legend = page.locator('.legend');
+    await expect(legend).toBeVisible();
+    await expect(legend).toContainText('実効速度');
+    await expect(legend).toContainText('直線距離 ÷ 所要時間');
+    await expect(legend.locator('.legend__swatch')).toHaveCount(5);
+    for (const tick of ['13未満', '13〜18', '18〜24', '24〜30', '30以上']) {
+      await expect(legend, tick).toContainText(tick);
+    }
+  });
+
+  test('もう一度押すと消える', async ({ page }) => {
+    await toggle(page).click();
+    await expect(page.locator('svg.map image.field')).toBeVisible();
+    await toggle(page).click();
+    await expect(page.locator('svg.map image.field')).toBeHidden();
+    await expect(page.locator('.legend')).toHaveCount(0);
+    await expect(page).not.toHaveURL(/field=1/);
+  });
+
+  test('URL の field=1 で最初から出せる', async ({ page }) => {
+    await page.goto('/?field=1');
+    await page.waitForSelector('svg.map .label');
+    await expect(page.locator('svg.map image.field')).toBeVisible();
+    await expect(page.locator('.legend')).toBeVisible();
+  });
+
+  test('中心駅を変えると場が作り直される', async ({ page }) => {
+    await page.goto('/?field=1&center=' + encodeURIComponent('東京'));
+    await page.waitForSelector('svg.map .label');
+    await page.waitForTimeout(900);
+    const before = await page.locator('svg.map image.field').getAttribute('href');
+
+    await page.fill('#station-search', '西船橋');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1200);
+
+    const after = await page.locator('svg.map image.field').getAttribute('href');
+    expect(before).toBeTruthy();
+    expect(after).not.toBe(before);
+  });
+
+  test('拡大しても場は駅と一緒に伸縮する', async ({ page }) => {
+    await page.goto('/?field=1&center=' + encodeURIComponent('東京') + '&scale=20');
+    await page.waitForSelector('svg.map .label');
+    await page.waitForTimeout(900);
+    const image = page.locator('svg.map image.field');
+    const w0 = Number(await image.getAttribute('width'));
+    const href0 = await image.getAttribute('href');
+
+    const center = await dotCenter(page, '東京');
+    await page.mouse.move(center.x, center.y);
+    await page.mouse.wheel(0, -400);
+    await page.waitForTimeout(400);
+
+    const w1 = Number(await image.getAttribute('width'));
+    expect(w1).toBeGreaterThan(w0 * 1.1);
+    // 倍率が変わっただけなら画像を作り直す必要はない
+    expect(await image.getAttribute('href')).toBe(href0);
+  });
+});
+
 test.describe('おまけモード', () => {
   test('ボタンでモーダルが開き、計画路線が並ぶ', async ({ page }) => {
     await page.getByRole('button', { name: /おまけモード/ }).click();
