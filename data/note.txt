@@ -1,0 +1,53 @@
+各CSVはUTF-8で記述(excelだと難しいかも)
+
+stations.csv
+路線ごとの駅一覧、路線内の駅同士のつながり、駅間の所要時間。駅番号同士の所要時間を記載する。
+駅には駅番号を振る。JRについては勝手に決める。
+東京メトロの駅所要時間は
+http://www.tokyometro.jp/support/startguide/pdf/startguide_10.pdf
+を用いる。積算値を隣接駅間で引いたものにする(丸ノ内線新宿-新宿三丁目だと、16-14で2とする)
+都営地下鉄は
+http://www.kotsu.metro.tokyo.jp/subway/stops/
+を参照。急行等は無視して各駅停車の時間を使う。
+JRは
+http://www.localtowns.jp/time/jreast-yamanote/tokyo/
+を参照(非公式)。
+山手線
+http://www.localtowns.jp/time/jreast-yamanote/tokyo/
+中央・総武線（各駅）
+http://www.localtowns.jp/time/jreast-chuosobukanko/ochanomizu/
+中央線（快速）御茶ノ水-東京のみ使用
+http://www.localtowns.jp/time/jreast-chuo/ochanomizu/
+総武線（快速）東京-錦糸町のみ使用
+http://www.localtowns.jp/time/jreast-sobukaisoku/tokyo/
+東京→神田(外回り)が61分となっているので少し長め？
+中央線・総武線を同一路線として乗換コストがかからないことになっているが、
+錦糸町⇒御茶ノ水の所要時間が乗換不要の各駅停車のほうが短いので時間計算上そんなに誤りにはならない。
+
+lines.csv
+路線名を列挙する。
+
+walk.csv
+名前が違うが徒歩で乗り換えられる駅を列挙する。
+
+新宿・御茶ノ水あたりは乗車券の乗換可能性と徒歩の利便性があわないところがあるがとりあえず放置。
+
+station_locations.csv
+駅の緯度経度。初版は parosky.net で配布されていた 20141005_stations.csv から
+生成していたが現在リンク切れのため、生成済みの map_data.js から復元してCSVにした。
+2020年開業の2駅の座標はWikipediaから取得。
+
+2026年7月の追補
+初版(2017年7月)以降に開業した駅を追加した。所要時間は現行ダイヤの時刻表で
+前後の駅の同一列車の発車時刻を比較して求めた。
+- 日比谷線 虎ノ門ヒルズ(H06, 2020-06-06開業)
+  神谷町→虎ノ門ヒルズ 1分、虎ノ門ヒルズ→霞ヶ関 2分。
+  これに伴い霞ヶ関以降の駅番号を1つずつ繰り下げた(H06→H07 … H21→H22)。
+  銀座線虎ノ門駅とは地下通路で連絡するため walk.csv に追加。
+- 山手線 高輪ゲートウェイ(2020-03-14開業)
+  田町→高輪ゲートウェイ 2分、高輪ゲートウェイ→品川 2分。
+  YT06以降の駅番号を1つずつ繰り下げた。
+  都営浅草線泉岳寺駅とは地上経由で乗り換えられるため walk.csv に追加。
+
+なお他の区間の所要時間は初版のまま(2017年7月時点)で、現行ダイヤとは1分程度の
+ずれがある箇所がある。ODPTの時刻表データへの移行時にまとめて更新する。
