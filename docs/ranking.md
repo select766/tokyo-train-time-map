@@ -50,7 +50,7 @@ $$
 
 $$
 D(c) = \sqrt{ \frac{1}{N} \sum_{s} \bigl( \ln v(c, s) - \ln \bar{v}(c) \bigr)^2 }
-     = \operatorname{stdev}_s\bigl[ \ln v(c, s) \bigr]
+     = \text{stdev}_s\bigl[ \ln v(c, s) \bigr]
 $$
 
 （$N$ は $c$ から到達できる駅の数）
