@@ -235,7 +235,7 @@ export function App({ network }: { network: Network }) {
             <strong>中心駅以外の駅どうしの所要時間は正しく表現されません</strong>。
           </li>
           <li>
-            <strong>快速・急行は考慮していません</strong>（中央線・総武線の都心区間の一部を除く）。
+            <strong>快速・急行は考慮していません</strong>（JR中央線・総武線・常磐線は快速含む）。
             各駅停車での所要時間です。
           </li>
           <li>乗換・徒歩連絡は一律{network.data.meta.transferMinutes}分として計算しています。</li>

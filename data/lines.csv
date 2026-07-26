@@ -20,7 +20,7 @@ JR,中央・総武線,#88898a,
 東京臨海高速鉄道,りんかい線,#e5006a,urban_lines_extra
 ゆりかもめ,ゆりかもめ,#00a0de,urban_lines_extra
 東京都交通局,日暮里・舎人ライナー,#7fb92f,urban_lines_extra
-西武鉄道,西武池袋線(練馬支線),#f8b500,private_bypass
+西武鉄道,西武池袋線(池袋・小竹向原-練馬),#f8b500,private_bypass
 西武鉄道,西武新宿線(中井-新宿),#f8b500,private_bypass
 京成電鉄,京成本線(町屋-上野),#0075c2,private_bypass
 首都圏新都市鉄道,つくばエクスプレス(北千住-秋葉原),#e4007f,private_bypass
@@ -28,7 +28,7 @@ JR,中央・総武線,#88898a,
 JR,京葉線,#88898a,
 京急電鉄,京急本線(泉岳寺-品川),#e60012,private_bypass
 東急電鉄,東急東横線(中目黒-渋谷),#ee7b1a,private_bypass
-東武鉄道,東武伊勢崎線(北千住支線),#0068b7,private_bypass
+東武鉄道,東武伊勢崎線(浅草・押上-北千住),#0068b7,private_bypass
 小田急電鉄,小田急小田原線(新宿-代々木上原),#1e50a2,private_bypass
 JR,埼京線,#88898a,
 JR,京浜東北線,#88898a,
