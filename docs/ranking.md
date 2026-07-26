@@ -11,7 +11,7 @@
 中心駅 $c$ から所要時間30分以内で到達できる駅の数です。
 
 $$
-R(c) = \left| \{\, s : t(c, s) \le 30 \,\} \right|
+R(c) = \left| \\{\\, s : t(c, s) \le 30 \\,\\} \right|
 $$
 
 - $t(c, s)$：中心駅 $c$ から駅 $s$ までの所要時間［分］（ダイクストラ法による最短時間。乗換は一律5分）
@@ -30,7 +30,7 @@ $$
 中心駅 $c$ から到達可能な駅 $s$（ $s \ne c$ ）について、直線距離と所要時間の比を実効速度と呼びます。
 
 $$
-v(c, s) = \frac{d(c, s)}{\,t(c, s) / 60\,} \quad [\text{km/h}]
+v(c, s) = \frac{d(c, s)}{\\,t(c, s) / 60\\,} \quad [\text{km/h}]
 $$
 
 - $d(c, s)$： $c$ と $s$ の大円距離［km］（緯度経度から算出。[`greatCircleKm`](../src/layout/distortion.ts)）
@@ -44,7 +44,7 @@ $$
 $c$ から到達できる各駅の実効速度の対数をとり、**その対数の標準偏差**をゆがみ指数とします。
 
 $$
-\bar{v}(c) = \exp\!\left( \frac{1}{N} \sum_{s} \ln v(c, s) \right)
+\bar{v}(c) = \exp\\!\left( \frac{1}{N} \sum_{s} \ln v(c, s) \right)
 \qquad\text{（実効速度の幾何平均）}
 $$
 
