@@ -47,11 +47,12 @@ test('初期表示で地図と統計が出る', async ({ page }) => {
   await expect(page.locator('svg.map .dot:not([style*="display: none"])')).toHaveCount(248);
 });
 
-test('上部に残すのは「ゆがみ」と「おまけモード」だけ', async ({ page }) => {
+test('上部に残すのは「ゆがみ」「おまけモード」「ランキング」だけ', async ({ page }) => {
   const primary = page.locator('.toolbar--primary');
-  await expect(primary.locator('button')).toHaveCount(2);
+  await expect(primary.locator('button')).toHaveCount(3);
   await expect(primary).toContainText('ゆがみを色で表示');
   await expect(primary).toContainText('おまけモード');
+  await expect(primary).toContainText('ランキング');
   // 検索・拡大縮小・文字サイズは副のほうにある
   await expect(page.locator('.toolbar--secondary #station-search')).toHaveCount(1);
   await expect(page.locator('.toolbar--secondary button')).toHaveCount(5);
@@ -222,7 +223,7 @@ test.describe('ゆがみの背景色', () => {
 test.describe('おまけモード', () => {
   test('ボタンでモーダルが開き、計画路線が並ぶ', async ({ page }) => {
     await page.getByRole('button', { name: /おまけモード/ }).click();
-    const dialog = page.locator('dialog.dialog');
+    const dialog = page.locator('dialog[aria-labelledby="extra-title"]');
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('都心部・臨海地域地下鉄');
     await expect(dialog).toContainText('有楽町線延伸');
@@ -252,7 +253,7 @@ test.describe('おまけモード', () => {
     const rBefore = Math.hypot(before.x - center.x, before.y - center.y);
 
     await page.getByRole('button', { name: /おまけモード/ }).click();
-    await page.locator('dialog.dialog input[type=checkbox]').first().check();
+    await page.locator('dialog[aria-labelledby="extra-title"] input[type=checkbox]').first().check();
     await page.getByRole('button', { name: '閉じる' }).click();
     await page.waitForTimeout(1000);
 
@@ -265,7 +266,7 @@ test.describe('おまけモード', () => {
 
   test('有効にすると未開業駅と対象駅数が増え、URL にも残る', async ({ page }) => {
     await page.getByRole('button', { name: /おまけモード/ }).click();
-    const boxes = page.locator('dialog.dialog input[type=checkbox]');
+    const boxes = page.locator('dialog[aria-labelledby="extra-title"] input[type=checkbox]');
     await boxes.nth(0).check();
     await boxes.nth(1).check();
     await page.getByRole('button', { name: '閉じる' }).click();
@@ -291,7 +292,7 @@ test.describe('おまけモード', () => {
     await expect(page.locator('.stats__headline')).toContainText('255 駅');
 
     await page.getByRole('button', { name: /おまけモード/ }).click();
-    const boxes = page.locator('dialog.dialog input[type=checkbox]');
+    const boxes = page.locator('dialog[aria-labelledby="extra-title"] input[type=checkbox]');
     await boxes.nth(0).uncheck();
     await boxes.nth(1).uncheck();
     await page.getByRole('button', { name: '閉じる' }).click();
@@ -309,7 +310,7 @@ test.describe('おまけモード', () => {
     await expect(page.locator('.stats__headline')).toContainText('248 駅');
 
     await page.getByRole('button', { name: /おまけモード/ }).click();
-    await page.locator('dialog.dialog input[type=checkbox]').nth(2).check();
+    await page.locator('dialog[aria-labelledby="extra-title"] input[type=checkbox]').nth(2).check();
     await page.getByRole('button', { name: '閉じる' }).click();
     await page.waitForTimeout(1000);
 
@@ -328,7 +329,7 @@ test.describe('おまけモード', () => {
     await expect(page.locator('.stats__headline')).toContainText('晴海');
 
     await page.getByRole('button', { name: /おまけモード/ }).click();
-    await page.locator('dialog.dialog input[type=checkbox]').first().uncheck();
+    await page.locator('dialog[aria-labelledby="extra-title"] input[type=checkbox]').first().uncheck();
     await page.getByRole('button', { name: '閉じる' }).click();
     await page.waitForTimeout(1000);
     // 中心が消えるので東京へ退避する
