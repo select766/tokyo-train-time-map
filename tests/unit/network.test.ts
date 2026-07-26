@@ -86,8 +86,8 @@ describe('生成されたネットワークデータ', () => {
   it('単一路線しか通らない区間は時刻表どおりの積算値になる', () => {
     // 三田線 志村坂上→志村三丁目→蓮根 = 2+2。いずれも他路線が乗り入れないので迂回路がない
     expect(minutes('志村坂上', '蓮根')).toBe(4);
-    // 山手線 東京→有楽町→新橋 = 2+2
-    expect(minutes('東京', '新橋')).toBe(4);
+    // 山手線 目黒→恵比寿 = 3(埼京線・京浜東北線は目黒に停車しないので迂回路がない)
+    expect(minutes('目黒', '恵比寿')).toBe(3);
   });
 
   it('並行路線があればそちらの短いほうが選ばれる', () => {
@@ -106,8 +106,8 @@ describe('生成されたネットワークデータ', () => {
     const cases: [string, string, number][] = [
       ['新宿', '東京', 20],
       ['渋谷', '上野', 30],
-      ['池袋', '品川', 35],
-      ['東京', '北千住', 25],
+      ['池袋', '品川', 25],
+      ['東京', '北千住', 16],
     ];
     for (const [a, b, expected] of cases) {
       expect(minutes(a, b), `${a}→${b}`).toBeGreaterThan(expected - 8);
@@ -123,7 +123,7 @@ describe('おまけモード（未開業路線）', () => {
   it('既定では無効で、未開業駅は存在しない', () => {
     const n = fresh();
     expect(n.groups.size).toBe(0);
-    expect(n.activeStations()).toHaveLength(250);
+    expect(n.activeStations()).toHaveLength(265);
     for (const name of ['晴海', '豊洲市場', '有明', '新銀座', '新築地', '枝川', '千石(江東)']) {
       const s = n.findByName(name);
       expect(s, name).toBeDefined();
@@ -156,7 +156,7 @@ describe('おまけモード（未開業路線）', () => {
     const n = fresh();
     n.setActiveGroups(['rinkai']);
     expect(n.travelMinutesFrom(n.findByName('東京')!.id)[n.findByName('有明')!.id]).toBe(15);
-    expect(n.activeStations()).toHaveLength(255);
+    expect(n.activeStations()).toHaveLength(270);
   });
 
   it('豊住線は直通運転なので豊洲で乗換時間がかからない', () => {
@@ -169,8 +169,8 @@ describe('おまけモード（未開業路線）', () => {
 
   it('南北線品川支線は白金高輪で直通し、品川〜六本木一丁目を9分にする', () => {
     const n = fresh();
-    // 公表資料では現状約19分（このデータでは21分）
-    expect(n.travelMinutesFrom(n.findByName('品川')!.id)[n.findByName('六本木一丁目')!.id]).toBe(21);
+    // 公表資料では現状約19分（このデータでも19分）
+    expect(n.travelMinutesFrom(n.findByName('品川')!.id)[n.findByName('六本木一丁目')!.id]).toBe(19);
     n.setActiveGroups(['shinagawa']);
     // 公表資料どおり約9分。白金高輪で乗換5分が乗ると14分になる
     expect(n.travelMinutesFrom(n.findByName('品川')!.id)[n.findByName('六本木一丁目')!.id]).toBe(9);
@@ -180,7 +180,7 @@ describe('おまけモード（未開業路線）', () => {
   it('南北線品川支線は新駅を持たないので駅数が変わらない', () => {
     const n = fresh();
     n.setActiveGroups(['shinagawa']);
-    expect(n.activeStations()).toHaveLength(250);
+    expect(n.activeStations()).toHaveLength(265);
   });
 
   it('豊住線がないと豊洲〜住吉は遠回りになる', () => {
@@ -196,9 +196,9 @@ describe('おまけモード（未開業路線）', () => {
     const kachidoki = n.findByName('勝どき')!.id;
     const original = n.travelMinutesFrom(tokyo)[kachidoki]!;
     n.setActiveGroups(['rinkai', 'toyosumi', 'shinagawa']);
-    expect(n.activeStations()).toHaveLength(257);
+    expect(n.activeStations()).toHaveLength(272);
     n.setActiveGroups([]);
-    expect(n.activeStations()).toHaveLength(250);
+    expect(n.activeStations()).toHaveLength(265);
     expect(n.travelMinutesFrom(tokyo)[kachidoki]).toBe(original);
   });
 
@@ -206,7 +206,7 @@ describe('おまけモード（未開業路線）', () => {
     const n = fresh();
     n.setActiveGroups(['そんなものはない']);
     expect(n.groups.size).toBe(0);
-    expect(n.activeStations()).toHaveLength(250);
+    expect(n.activeStations()).toHaveLength(265);
   });
 
   it('おまけ路線の駅は既存駅と正しくつながる', () => {
