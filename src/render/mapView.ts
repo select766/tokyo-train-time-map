@@ -351,10 +351,16 @@ export class MapView {
       const el = document.createElementNS(SVG_NS, 'line');
       if (edge.lineId === null) {
         el.setAttribute('class', 'edge edge--transfer');
+      } else if (this.network.isBypassLine(edge.lineId)) {
+        // 私鉄バイパス区間は路線色を使わず、灰色の太い点線で描く
+        el.setAttribute('class', 'edge edge--bypass');
       } else {
         const line = this.network.line(edge.lineId);
         // 未開業路線は破線で描き、開業済みの路線と区別する
-        el.setAttribute('class', line.group === null ? 'edge' : 'edge edge--planned');
+        el.setAttribute(
+          'class',
+          this.network.isPlannedLine(edge.lineId) ? 'edge edge--planned' : 'edge',
+        );
         el.setAttribute('stroke', line.color);
       }
       this.edgeGroup.appendChild(el);

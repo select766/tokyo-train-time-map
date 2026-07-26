@@ -42,7 +42,8 @@ describe('生成されたネットワークデータ', () => {
     for (const e of data.edges) {
       if (e.lineId === null) continue;
       expect(e.minutes).toBeGreaterThan(0);
-      expect(e.minutes).toBeLessThanOrEqual(10);
+      // バイパス区間は中間駅を省いた1エッジなので、通常の隣接駅間より長くなりうる
+      expect(e.minutes).toBeLessThanOrEqual(15);
     }
   });
 
@@ -122,7 +123,7 @@ describe('おまけモード（未開業路線）', () => {
   it('既定では無効で、未開業駅は存在しない', () => {
     const n = fresh();
     expect(n.groups.size).toBe(0);
-    expect(n.activeStations()).toHaveLength(248);
+    expect(n.activeStations()).toHaveLength(250);
     for (const name of ['晴海', '豊洲市場', '有明', '新銀座', '新築地', '枝川', '千石(江東)']) {
       const s = n.findByName(name);
       expect(s, name).toBeDefined();
@@ -155,7 +156,7 @@ describe('おまけモード（未開業路線）', () => {
     const n = fresh();
     n.setActiveGroups(['rinkai']);
     expect(n.travelMinutesFrom(n.findByName('東京')!.id)[n.findByName('有明')!.id]).toBe(15);
-    expect(n.activeStations()).toHaveLength(253);
+    expect(n.activeStations()).toHaveLength(255);
   });
 
   it('豊住線は直通運転なので豊洲で乗換時間がかからない', () => {
@@ -179,7 +180,7 @@ describe('おまけモード（未開業路線）', () => {
   it('南北線品川支線は新駅を持たないので駅数が変わらない', () => {
     const n = fresh();
     n.setActiveGroups(['shinagawa']);
-    expect(n.activeStations()).toHaveLength(248);
+    expect(n.activeStations()).toHaveLength(250);
   });
 
   it('豊住線がないと豊洲〜住吉は遠回りになる', () => {
@@ -195,9 +196,9 @@ describe('おまけモード（未開業路線）', () => {
     const kachidoki = n.findByName('勝どき')!.id;
     const original = n.travelMinutesFrom(tokyo)[kachidoki]!;
     n.setActiveGroups(['rinkai', 'toyosumi', 'shinagawa']);
-    expect(n.activeStations()).toHaveLength(255);
+    expect(n.activeStations()).toHaveLength(257);
     n.setActiveGroups([]);
-    expect(n.activeStations()).toHaveLength(248);
+    expect(n.activeStations()).toHaveLength(250);
     expect(n.travelMinutesFrom(tokyo)[kachidoki]).toBe(original);
   });
 
@@ -205,7 +206,7 @@ describe('おまけモード（未開業路線）', () => {
     const n = fresh();
     n.setActiveGroups(['そんなものはない']);
     expect(n.groups.size).toBe(0);
-    expect(n.activeStations()).toHaveLength(248);
+    expect(n.activeStations()).toHaveLength(250);
   });
 
   it('おまけ路線の駅は既存駅と正しくつながる', () => {
@@ -216,6 +217,49 @@ describe('おまけモード（未開業路線）', () => {
       const unreachable = n.activeStations().filter((t) => !Number.isFinite(m[t.id]!));
       expect(unreachable.map((t) => t.name), `${s.name} から`).toEqual([]);
     }
+  });
+});
+
+describe('おまけモード（対応範囲外の運行中路線・バイパス）', () => {
+  const fresh = () => new Network(JSON.parse(JSON.stringify(data)) as NetworkData);
+
+  it('未開業計画線・実在路線・バイパスでisPlannedLine/isBypassLineの判定が分かれる', () => {
+    const n = fresh();
+    const plannedLine = n.lines.find((l) => l.group === 'rinkai')!;
+    const existingLine = n.lines.find((l) => l.group === 'urban_lines_extra')!;
+    const bypassLine = n.lines.find((l) => l.group === 'private_bypass')!;
+    const permanentLine = n.lines.find((l) => l.group === null)!;
+
+    expect(n.isPlannedLine(plannedLine.id)).toBe(true);
+    expect(n.isPlannedLine(existingLine.id)).toBe(false);
+    expect(n.isPlannedLine(bypassLine.id)).toBe(false);
+    expect(n.isPlannedLine(permanentLine.id)).toBe(false);
+
+    expect(n.isBypassLine(bypassLine.id)).toBe(true);
+    expect(n.isBypassLine(plannedLine.id)).toBe(false);
+    expect(n.isBypassLine(existingLine.id)).toBe(false);
+    expect(n.isBypassLine(permanentLine.id)).toBe(false);
+  });
+
+  it('私鉄バイパスを有効にすると泉岳寺〜品川が短縮される', () => {
+    const before = fresh();
+    const sengakuji = before.findByName('泉岳寺')!.id;
+    const shinagawa = before.findByName('品川')!.id;
+    const beforeMinutes = before.travelMinutesFrom(sengakuji)[shinagawa]!;
+
+    const after = fresh();
+    after.setActiveGroups(['private_bypass']);
+    const afterMinutes = after.travelMinutesFrom(sengakuji)[shinagawa]!;
+
+    expect(afterMinutes).toBeLessThan(beforeMinutes);
+  });
+
+  it('都心部路線グループは新駅を追加しつつ、既存駅の名前は変えない', () => {
+    const n = fresh();
+    n.setActiveGroups(['urban_lines_extra']);
+    expect(n.findByName('大崎')).toBeDefined();
+    expect(n.findByName('新木場')).toBeDefined();
+    expect(n.activeStations().length).toBeGreaterThan(250);
   });
 });
 

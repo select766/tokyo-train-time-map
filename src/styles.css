@@ -231,6 +231,13 @@ body {
   opacity: 0.5;
 }
 
+/* 私鉄バイパス区間。徒歩連絡より太い灰色の点線で見分けられるようにする */
+.edge--bypass {
+  stroke: var(--fg-muted);
+  stroke-width: 3;
+  stroke-dasharray: 4 4;
+}
+
 .dot {
   fill: var(--bg);
   stroke: var(--fg);
@@ -395,6 +402,16 @@ body {
   margin: 0 0 14px;
   color: var(--fg-muted);
   font-size: 0.8rem;
+}
+
+.dialog__section-title {
+  margin: 18px 0 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.dialog__section-title:first-child {
+  margin-top: 0;
 }
 
 .dialog__list {

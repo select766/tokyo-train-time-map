@@ -14,17 +14,23 @@ export interface Line {
   /** #rrggbb */
   color: string;
   /**
-   * 常設の路線は null。おまけモードで足せる未開業路線は、
-   * どのグループに属するかを表す id が入る。
+   * 常設の路線は null。おまけモードで切り替えられる路線は、
+   * どのグループ（OptionalGroup）に属するかを表す id が入る。
    */
   group: string | null;
 }
 
-/** おまけモードで切り替えられる路線のまとまり（未開業・計画中の路線） */
+/**
+ * おまけモードで切り替えられる路線のまとまり。
+ * category: 'plan' = 未開業・計画中の路線（破線で描画）。
+ *           'existing' = 既に運行中だが対応範囲外の路線（実線・路線色で描画）。
+ *           'bypass' = 既存駅同士を結ぶ私鉄の短絡区間（灰色の太い点線で描画）。
+ */
 export interface OptionalGroup {
   id: string;
   name: string;
   description: string;
+  category: 'plan' | 'existing' | 'bypass';
 }
 
 /** 駅（同名の複数路線ホームをまとめたもの） */

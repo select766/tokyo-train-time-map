@@ -11,7 +11,25 @@ interface Props {
 }
 
 /**
- * おまけモードのモーダル。計画中・建設中の路線を地図に足すかどうかを選ぶ。
+ * category は地図上の描画スタイル（破線・実線・バイパスの灰色点線）を決めるための
+ * 区分だが、ダイアログの見出しは「計画路線」か「それ以外」の2区分のままにする。
+ */
+type Section = 'plan' | 'other';
+
+const SECTION_LABELS: Record<Section, string> = {
+  plan: '未開業の計画路線',
+  other: '対応範囲外の運行中路線・バイパス区間',
+};
+
+const SECTION_ORDER: Section[] = ['plan', 'other'];
+
+function sectionOf(category: OptionalGroup['category']): Section {
+  return category === 'plan' ? 'plan' : 'other';
+}
+
+/**
+ * おまけモードのモーダル。計画中・建設中の路線や、対応範囲外の運行中路線・
+ * バイパス区間を地図に足すかどうかを選ぶ。
  *
  * 駅の位置も駅間所要時間も公表資料からのおおまかな値なので、
  * 「そのくらい近くなる」という目安であることをここで断っておく。
@@ -32,39 +50,48 @@ export function ExtraLinesDialog({ open, groups, lines, active, onToggle, onClos
         おまけモード
       </h2>
       <p class="dialog__lead">
-        まだ開業していない計画中・建設中の路線を地図に足します。
-        駅の位置も所要時間も公表資料からのおおよその値なので、
-        <strong>実際に開業したらこのくらい近くなる、という目安</strong>として見てください。
+        まだ開業していない計画中・建設中の路線や、対応範囲外の運行中路線・短絡バイパス区間を
+        地図に足します。駅の位置も所要時間も公表資料からのおおよその値なので、
+        <strong>目安</strong>として見てください。
       </p>
 
-      <ul class="dialog__list">
-        {groups.map((group) => {
-          const groupLines = lines.filter((l) => l.group === group.id);
-          return (
-            <li class="dialog__item" key={group.id}>
-              <label class="dialog__label">
-                <input
-                  type="checkbox"
-                  checked={active.has(group.id)}
-                  onChange={(e) => onToggle(group.id, e.currentTarget.checked)}
-                />
-                <span>
-                  <span class="dialog__name">{group.name}</span>
-                  <span class="dialog__desc">{group.description}</span>
-                  <span class="dialog__lines">
-                    {groupLines.map((l) => (
-                      <span class="dialog__chip" key={l.id}>
-                        <span class="dialog__swatch" style={{ background: l.color }} />
-                        {l.name}（{l.company}）
+      {SECTION_ORDER.map((section) => {
+        const sectionGroups = groups.filter((g) => sectionOf(g.category) === section);
+        if (sectionGroups.length === 0) return null;
+        return (
+          <div key={section}>
+            <h3 class="dialog__section-title">{SECTION_LABELS[section]}</h3>
+            <ul class="dialog__list">
+              {sectionGroups.map((group) => {
+                const groupLines = lines.filter((l) => l.group === group.id);
+                return (
+                  <li class="dialog__item" key={group.id}>
+                    <label class="dialog__label">
+                      <input
+                        type="checkbox"
+                        checked={active.has(group.id)}
+                        onChange={(e) => onToggle(group.id, e.currentTarget.checked)}
+                      />
+                      <span>
+                        <span class="dialog__name">{group.name}</span>
+                        <span class="dialog__desc">{group.description}</span>
+                        <span class="dialog__lines">
+                          {groupLines.map((l) => (
+                            <span class="dialog__chip" key={l.id}>
+                              <span class="dialog__swatch" style={{ background: l.color }} />
+                              {l.name}（{l.company}）
+                            </span>
+                          ))}
+                        </span>
                       </span>
-                    ))}
-                  </span>
-                </span>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
 
       <div class="dialog__actions">
         <button type="button" onClick={onClose}>

@@ -17,6 +17,7 @@ export class Network {
   private readonly stationOfNode: Int32Array;
   private readonly lineById: Map<number, Line>;
   private readonly stationByName: Map<string, Station>;
+  private readonly groupById: Map<string, OptionalGroup>;
 
   constructor(readonly data: NetworkData) {
     this.lines = data.lines;
@@ -26,6 +27,7 @@ export class Network {
     for (const node of data.nodes) this.stationOfNode[node.id] = node.stationId;
     this.lineById = new Map(data.lines.map((l) => [l.id, l]));
     this.stationByName = new Map(data.stations.map((s) => [s.name, s]));
+    this.groupById = new Map(data.optionalGroups.map((g) => [g.id, g]));
     this.adjacency = this.buildActiveAdjacency();
   }
 
@@ -45,6 +47,20 @@ export class Network {
   isLineActive(lineId: number): boolean {
     const group = this.line(lineId).group;
     return group === null || this.activeGroups.has(group);
+  }
+
+  /** 未開業・計画中の路線か（破線描画の判定に使う。おまけ対象でも実在路線なら false） */
+  isPlannedLine(lineId: number): boolean {
+    const group = this.line(lineId).group;
+    if (group === null) return false;
+    return this.groupById.get(group)?.category === 'plan';
+  }
+
+  /** 既存駅同士を結ぶ私鉄の短絡バイパス区間か（灰色の点線描画の判定に使う） */
+  isBypassLine(lineId: number): boolean {
+    const group = this.line(lineId).group;
+    if (group === null) return false;
+    return this.groupById.get(group)?.category === 'bypass';
   }
 
   isNodeActive(nodeId: number): boolean {

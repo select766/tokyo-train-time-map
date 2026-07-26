@@ -51,11 +51,20 @@ function readCsv(path: string): Record<string, string>[] {
 // --- build -------------------------------------------------------------
 
 function build(): NetworkData {
-  const optionalGroups: OptionalGroup[] = readCsv(resolve(DATA, 'extra_groups.csv')).map((r) => ({
-    id: required(r, 'グループid'),
-    name: required(r, '名称'),
-    description: required(r, '説明'),
-  }));
+  const optionalGroups: OptionalGroup[] = readCsv(resolve(DATA, 'extra_groups.csv')).map((r) => {
+    const category = required(r, 'カテゴリ');
+    if (category !== 'plan' && category !== 'existing' && category !== 'bypass') {
+      throw new Error(
+        `extra_groups.csv: 不正なカテゴリ「${category}」（plan / existing / bypass のみ許可）`,
+      );
+    }
+    return {
+      id: required(r, 'グループid'),
+      name: required(r, '名称'),
+      description: required(r, '説明'),
+      category,
+    };
+  });
   const groupIds = new Set(optionalGroups.map((g) => g.id));
 
   const lines: Line[] = readCsv(resolve(DATA, 'lines.csv')).map((r, i) => {
