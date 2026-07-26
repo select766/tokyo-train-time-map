@@ -5,6 +5,7 @@ import { reachStats, type ReachStats } from '../layout/polar.ts';
 import { StationSearch } from './StationSearch.tsx';
 import { StatsPanel } from './StatsPanel.tsx';
 import { ExtraLinesDialog } from './ExtraLinesDialog.tsx';
+import { RankingDialog } from './RankingDialog.tsx';
 import { DistortionLegend } from './DistortionLegend.tsx';
 import type { ColorScheme } from '../render/distortionPaint.ts';
 import { readUrlState, writeUrlState } from '../urlState.ts';
@@ -22,6 +23,7 @@ export function App({ network }: { network: Network }) {
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [hovered, setHovered] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [rankingOpen, setRankingOpen] = useState(false);
   const [activeGroups, setActiveGroups] = useState<ReadonlySet<string>>(() => network.groups);
   // おまけの駅は無効なときリストに出さない
   const [searchable, setSearchable] = useState(() => network.activeStations());
@@ -176,6 +178,11 @@ export function App({ network }: { network: Network }) {
             {activeGroups.size > 0 && <span class="badge">{activeGroups.size}</span>}
           </button>
         </div>
+        <div class="toolbar__group">
+          <button type="button" onClick={() => setRankingOpen(true)}>
+            ランキング
+          </button>
+        </div>
       </div>
       </div>
 
@@ -206,6 +213,15 @@ export function App({ network }: { network: Network }) {
           view.current?.setActiveGroups(next);
         }}
         onClose={() => setDialogOpen(false)}
+      />
+
+      <RankingDialog
+        open={rankingOpen}
+        network={network}
+        activeGroups={activeGroups}
+        centerStationId={centerId}
+        onSelect={(id) => view.current?.setCenter(id)}
+        onClose={() => setRankingOpen(false)}
       />
 
       <footer class="footer">

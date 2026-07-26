@@ -480,6 +480,153 @@ body {
   cursor: pointer;
 }
 
+/* --- ランキング --- */
+
+.ranking__titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ranking__defLink {
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ranking__defLink:hover {
+  text-decoration: underline;
+}
+
+.ranking__tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.ranking__tab {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.ranking__tab--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ranking__allToggle {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+  color: var(--fg-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.ranking__allToggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.ranking__current {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  font-size: 0.84rem;
+}
+
+.ranking__sectionTitle {
+  margin: 14px 0 6px;
+  color: var(--fg-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ranking__sectionTitle:first-of-type {
+  margin-top: 0;
+}
+
+.ranking__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 22vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ranking__list--full {
+  max-height: 50vh;
+}
+
+.ranking__row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ranking__row:hover {
+  border-color: var(--border);
+  background: var(--bg-panel);
+}
+
+.ranking__row--current {
+  border-color: var(--accent);
+}
+
+.ranking__row--current .ranking__name {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ranking__rank {
+  flex: 0 0 1.8em;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ranking__name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking__value {
+  flex: 0 0 auto;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- 統計 --- */
 
 .stats {
